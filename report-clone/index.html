@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — Report Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-clone-build" content="2026-07-10T18:18:00Z" />
+<meta name="troo-aov-clone-build" content="2026-07-10T18:31:00Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -82,6 +82,16 @@
   @media(max-width:760px){.suggestionFields{grid-template-columns:1fr}}
   .fieldBox{border-top:1px solid var(--line);padding-top:10px;color:#d7d4de;font-size:13.5px;line-height:1.55}
   .fieldBox b{display:block;font:10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .miniWire{margin-top:14px;border:1px solid var(--line);border-radius:8px;background:#0b0a0f;padding:12px;display:grid;grid-template-columns:120px 1fr;gap:12px}
+  .miniMedia{border-radius:6px;background:linear-gradient(135deg,#24232d,#111016);min-height:132px;display:flex;align-items:center;justify-content:center;color:#696372;font:10px "JetBrains Mono",monospace;text-align:center;padding:8px}
+  .miniStack{display:flex;flex-direction:column;gap:7px}
+  .miniLine{height:10px;border-radius:999px;background:rgba(255,255,255,.14)}
+  .miniLine.short{width:48%}.miniLine.mid{width:70%}
+  .miniDeals{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+  .miniDeal{border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:7px;color:var(--muted);font:10px "JetBrains Mono",monospace}
+  .miniDeal.best{border-color:var(--purple);color:var(--white);box-shadow:0 0 0 1px rgba(138,108,245,.45)}
+  .miniCta{height:28px;border-radius:6px;background:linear-gradient(90deg,var(--purple),#b27aff);margin-top:2px}
+  @media(max-width:760px){.miniWire{grid-template-columns:1fr}.miniMedia{min-height:90px}}
   .suggestionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
   .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
   .modal{width:min(1120px,100%);max-height:92vh;overflow:auto;background:#111015;border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 70px rgba(0,0,0,.5)}
@@ -475,6 +485,7 @@ function suggestionCards(report){
         fieldBox('Recommended Change', sug.recommendation),
         fieldBox('Expected Impact', `${sug.expectedImpact.primaryMetric}; ${sug.expectedImpact.secondaryMetric}; confidence ${sug.expectedImpact.confidence}`),
       ]),
+      miniWireframePreview(sug),
       el('div',{class:'suggestionActions'},[
         el('button',{class:'secbtn', onclick:()=>openWireframe(sug)},'Generate Wireframe'),
         el('button',{class:'secbtn', onclick:()=>copyDeveloperPrompt(sug)},'Copy Developer Prompt')
@@ -486,6 +497,23 @@ function suggestionCards(report){
 
 function fieldBox(label, value){
   return el('div',{class:'fieldBox'},[el('b',{},label), value || 'Not specified']);
+}
+
+function miniWireframePreview(sug){
+  return el('div',{class:'miniWire'},[
+    el('div',{class:'miniMedia'},'section context'),
+    el('div',{class:'miniStack'},[
+      el('div',{class:'miniLine mid'}),
+      el('div',{class:'miniLine short'}),
+      el('div',{class:'miniDeals'},[
+        el('div',{class:'miniDeal'},'Buy 1'),
+        el('div',{class:'miniDeal best'},'Buy 2'),
+        el('div',{class:'miniDeal'},'Buy 3'),
+        el('div',{class:'miniDeal'},'Buy 5')
+      ]),
+      el('div',{class:'miniCta', title:`Wireframe preview for ${sug.title}`})
+    ])
+  ]);
 }
 
 function buildSuggestions(report){
