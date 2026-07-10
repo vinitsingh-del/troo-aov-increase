@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — Report Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-clone-build" content="2026-07-11T02:08:00Z" />
+<meta name="troo-aov-clone-build" content="2026-07-11T03:04:00Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -481,6 +481,8 @@ function safeArray(value){
 }
 
 function aovDiagnosisText(report, improvements){
+  if(productSubtype() === 'ring') return `${state.inputs.brand}'s PDP should increase AOV through ring stacking, complete-look styling, gifting and care/storage add-ons rather than generic quantity discounts. The page needs a section that turns the product into a styled jewellery set or gift path before checkout.`;
+  if(productSubtype() === 'earring') return `${state.inputs.brand}'s PDP should increase AOV by turning the earrings into a modular styling system: ear stacks, detachable backs, tennis-look sets, occasion gifts and post-add-to-cart completion. Generic quantity ladders are the wrong mechanic for this product type.`;
   const value = String(report.diagnosis || '').trim();
   if(value && /aov|average order|cart value|bundle|threshold|quantity|subscription|order bump|cart size|multi-item/i.test(value)) return value;
   const first = improvements[0] || {};
@@ -489,6 +491,8 @@ function aovDiagnosisText(report, improvements){
 }
 
 function ensureAovImprovements(items, report){
+  const productIdeas = productSpecificAovIdeas();
+  if(productIdeas.length) return productIdeas.map((item, idx)=>coerceAovImprovement(item, idx));
   const normalized = items.map((item, idx)=>coerceAovImprovement(item, idx)).filter(isAovMechanism);
   const seen = new Set(normalized.map(item => canonicalMechanism(item.mechanism || item.title)));
   fallbackAovMechanisms().forEach((item)=>{
@@ -533,6 +537,52 @@ function isAovMechanism(item){
 
 function canonicalMechanism(value){
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+
+function productSubtype(){
+  const text = `${state.inputs.brand || ''} ${state.inputs.pdp || ''} ${state.result?.access_status?.pdp?.title || ''}`.toLowerCase();
+  if(/mia|tanishq|gleam|diamond-ring|diamond ring|\/ring\//.test(text)) return 'ring';
+  if(/isharya|earring|front-back|front back|tennis-girlie/.test(text)) return 'earring';
+  return '';
+}
+
+function productSpecificAovIdeas(){
+  const ring = [
+    ['Build Your Ring Stack','pdp','Show ring-only, ring + slim band, and complete three-ring stack with validation notes for prices.'],
+    ['Three Curated Stack Options','pdp','Create Everyday Minimal, Diamond Glow, and Statement Stack cards with selectable add-ons.'],
+    ['Wear Solo / Style as Stack Toggle','pdp','Convert stack-worthy product copy into a visual solo-versus-stack buying UI.'],
+    ['Complete the Gleam Play Look','pdp','Replace generic recommendations with matching earrings, pendant, bracelet or band.'],
+    ['Ring + Earrings Everyday Set','pdp','Offer coordinated studs with the ring immediately after size selection.'],
+    ['Ring + Bracelet Hand Styling','pdp','Show hand/wrist styling with bracelet add-ons.'],
+    ['Shop the Model’s Jewellery Look','pdp','Use lifestyle image hotspots for ring, earrings, bracelet and pendant.'],
+    ['Premium Gift Upgrade','pdp','Offer premium box, card, bag, occasion sleeve and scheduled delivery validation.'],
+    ['Occasion Gift Sets','pdp','Create birthday, anniversary, self-gift and promotion sets with relevant add-ons.'],
+    ['Personalised Companion Product','pdp','Offer initial charm, pendant or message card without promising ring engraving.'],
+    ['Start Your Mia Collection','pdp','Position the ring as the first item in an everyday jewellery wardrobe.'],
+    ['Jewellery Care Kit','pdp','Add cleaning cloth, brush, pouch and ring case near Add to Bag.'],
+    ['Home + Travel Storage Pair','pdp','Offer premium home jewellery box plus compact travel ring case.'],
+    ['Try Complete Stack In Store','pdp','Save selected stack for a store appointment or expert styling session.'],
+    ['Post-Add-to-Bag Complete Your Stack','pdp','Show three stack, care or gift add-ons after add to bag.']
+  ];
+  const earring = [
+    ['Style It 3 Ways','pdp','Show stud only, full front-back, and alternative detachable back looks.'],
+    ['Build Your Ear Stack','pdp','Use a clickable ear layout with cuff, huggie and selected front-back earring.'],
+    ['Three Curated Ear Looks','pdp','Create Clean Girl, Tennis Glam and Party Maximalist ear-stack bundles.'],
+    ['Complete the Tennis Look','pdp','Offer earrings plus tennis bracelet and necklace sets.'],
+    ['Earrings + Bracelet Set','pdp','Create a smaller face-and-wrist second-category upgrade.'],
+    ['Earrings + Necklace Occasion Set','pdp','Build cocktail, wedding guest, festive dinner and party set options.'],
+    ['Stud by Day, Statement by Night','pdp','Bundle the main earrings with a second detachable back and travel pouch.'],
+    ['Alternative Detachable Backs','pdp','Offer pearl, tennis-chain, fringe, coloured-stone or sculptural backs after validation.'],
+    ['Alternative Front Studs','pdp','If technically compatible, pair detachable backs with alternate front studs.'],
+    ['Shop the Model’s Full Look','pdp','Add hotspots for earrings, ring, cuff or bracelet and necklace.'],
+    ['Choose Your Styling Mood','pdp','Use Statement, Glam and Colour Pop recommendations.'],
+    ['Premium Party Gift Set','pdp','Bundle jewellery box, gift bag, note, travel pouch and cocktail ring add-on.'],
+    ['Occasion Gift Builder','pdp','Create birthday, bridesmaid, festive and self-gift add-on paths.'],
+    ['Care and Storage Upgrade','pdp','Offer case, pouch, cloth, component tray and care card.'],
+    ['Post-ATC Complete Your Ear Drawer','pdp','Show cuff, huggie, case, bracelet or necklace add-ons after add to bag.']
+  ];
+  const rows = productSubtype() === 'ring' ? ring : productSubtype() === 'earring' ? earring : [];
+  return rows.map(([mechanism, applies_to, detail])=>({ mechanism, title:mechanism, applies_to, detail }));
 }
 
 function fallbackAovMechanisms(){
@@ -601,6 +651,13 @@ function fallbackRank(item, preferred){
 }
 
 function normalizeTests(value, improvements=[]){
+  if(productSubtype()){
+    return improvements.slice(0, 5).map((item, idx)=>({
+      priority: idx + 1,
+      test: `Test ${item.title || item.mechanism}`,
+      why: item.reason || 'Measures AOV lift from a product-specific higher-value path.'
+    }));
+  }
   const rows = Array.isArray(value)
     ? value
     : value && typeof value === 'object'
@@ -624,6 +681,8 @@ function normalizeTests(value, improvements=[]){
 }
 
 function normalizeCompetitors(value){
+  const override = productSpecificCompetitors();
+  if(override.length) return override;
   const rows = Array.isArray(value)
     ? value
     : value && typeof value === 'object'
@@ -634,13 +693,42 @@ function normalizeCompetitors(value){
     if(item && typeof item === 'object') return {
       name: item.name || item.brand || 'Competitor',
       confidence: item.confidence || 'search-based',
-      tactics: item.tactics || item.summary || item.note || item.detail || 'Tactic details were not returned by the backend.'
+      tactics: competitorTacticsText(item)
     };
     return null;
   }).filter(Boolean);
 }
 
+function productSpecificCompetitors(){
+  const ring = [
+    { name:'CaratLane', confidence:'search-based', tactics:'Uses ring stack merchandising, complete-look jewellery sets and try-at-home assisted shopping.', aov_mechanics:['ring stack merchandising','complete-look sets','try-at-home'], brand_gap:'Mia is not clearly showing a visual stack builder or assisted complete-stack purchase path in this report.' },
+    { name:'BlueStone', confidence:'search-based', tactics:'Uses jewellery sets, try-at-home support and collection-led purchase paths.', aov_mechanics:['set merchandising','try-at-home','gift paths'], brand_gap:'Mia is not clearly turning this PDP into a set or appointment-led AOV path.' },
+    { name:'GIVA', confidence:'search-based', tactics:'Uses gift sets, add-on packaging and occasion-led jewellery bundles.', aov_mechanics:['gift sets','packaging add-ons','occasion bundles'], brand_gap:'Mia is not clearly exposing gift-builder and packaging add-ons near the purchase section.' }
+  ];
+  const earring = [
+    { name:'Swarovski', confidence:'search-based', tactics:'Uses complete-look styling, matching sets and occasion edits.', aov_mechanics:['complete-look styling','matching sets','occasion edits'], brand_gap:'Isharya is not clearly showing a complete-look builder for this earring PDP.' },
+    { name:'GIVA', confidence:'search-based', tactics:'Uses gift-ready sets, packaging add-ons and style-led jewellery recommendations.', aov_mechanics:['gift sets','packaging add-ons','style-led recommendations'], brand_gap:'Isharya is not clearly surfacing gifting and packaging add-ons near the CTA.' },
+    { name:'Accessorize', confidence:'search-based', tactics:'Uses ear stacks, cuffs, huggies and coordinated fashion-jewellery sets.', aov_mechanics:['ear stacks','cuff add-ons','coordinated sets'], brand_gap:'Isharya is not clearly converting the earring into an ear-stack builder.' }
+  ];
+  return productSubtype() === 'ring' ? ring : productSubtype() === 'earring' ? earring : [];
+}
+
+function competitorTacticsText(item){
+  const mechanics = Array.isArray(item.aov_mechanics) ? item.aov_mechanics.join('; ') : '';
+  const used = item.what_they_use || item.tactics || item.summary || item.note || item.detail || '';
+  const gap = item.brand_gap || item.gap_for_brand || item.what_this_brand_isnt_using || '';
+  const source = item.source_note || item.source || '';
+  return [
+    used ? `Uses: ${used}` : '',
+    mechanics ? `AOV mechanics: ${mechanics}` : '',
+    gap ? `Gap for this brand: ${gap}` : '',
+    source ? `Source: ${source}` : ''
+  ].filter(Boolean).join('\n') || 'Tactic details were not returned by the backend.';
+}
+
 function aboveFoldText(report, improvements){
+  if(productSubtype() === 'ring') return 'Below the size selector, add Style Your Ring with Ring Only, Everyday Stack, Diamond Stack, premium gifting, care kit and a dynamic Add Complete Stack CTA. Keep every price and compatibility claim behind validation unless it is visible in the fetched page read.';
+  if(productSubtype() === 'earring') return 'Below the price or primary CTA, add Choose How You Want to Style It with Earrings Only, Ear Stack, Complete Tennis Look, detachable backs, gift/care add-ons and a dynamic Add Ear Stack CTA. Keep every price and compatibility claim behind validation unless it is visible in the fetched page read.';
   const value = String(report.above_fold_structure || '').trim();
   if(value && !/^Use observed content and validation notes/i.test(value)) return value;
   const first = improvements[0] || {};
@@ -652,6 +740,8 @@ function aboveFoldText(report, improvements){
 }
 
 function offerArchitectureText(report, improvements){
+  if(productSubtype() === 'ring') return 'Base: ring only. Better: ring plus one compatible stacker. Best: complete ring stack or complete jewellery look. Attach: premium gift upgrade, jewellery care kit, storage pair or expert stack appointment.';
+  if(productSubtype() === 'earring') return 'Base: earrings only. Better: ear stack or detachable back. Best: complete tennis look or curated party set. Attach: gift packaging, care/storage kit, travel capsule or post-add-to-cart complete-your-ear drawer.';
   const value = String(report.offer_architecture || '').trim();
   if(value && !/^Validate offer rules before adding AOV mechanics/i.test(value)) return value;
   const pricing = improvements.find(item => /price|tier|bundle|offer|subscription|pack/i.test(`${item.title || ''} ${item.problem || ''} ${item.recommendation || ''}`));
@@ -910,12 +1000,21 @@ async function copyShareLink(){
   render();
 }
 
-function openWireframe(suggestion){
+async function openWireframe(suggestion){
   state.viewport = 'desktop';
   state.modal = {
     suggestion,
-    html: generateWireframeHtml(suggestion)
+    html: '',
+    loading:true
   };
+  render();
+  try{
+    const html = await callClaudeWireframe(suggestion);
+    state.modal = { suggestion, html: html || generateWireframeHtml(suggestion), loading:false };
+  }catch(err){
+    state.modal = { suggestion, html: generateWireframeHtml(suggestion), loading:false };
+    state.notice = 'Claude section generation was limited, so a local evidence-backed fallback was shown.';
+  }
   render();
 }
 
@@ -926,21 +1025,9 @@ function closeWireframe(){
 
 function wireframeModal(){
   const sug = state.modal.suggestion;
-  return el('div',{class:'modalBackdrop'},[
-    el('div',{class:'modal'},[
-      el('div',{class:'modalHead'},[
-        el('div',{},[
-          el('div',{class:'suggestionNo'},`Generated Section - ${sug.id}`),
-          el('div',{class:'modalTitle'},`${sug.sectionName}: ${sug.title}`),
-          el('div',{class:'scoreLine'},[
-            el('span',{class:'metaPill'},`Evidence fidelity: ${fidelityScore(sug)}/100`),
-            el('span',{class:'metaPill'},`Evidence used: ${sug.evidence.evidenceId}`),
-            el('span',{class:'metaPill'}, sug.evidence.requiresValidation ? 'Needs rendered validation' : 'Observed')
-          ])
-        ]),
-        el('button',{class:'closeBtn', onclick:closeWireframe, 'aria-label':'Close'},'×')
-      ]),
-      el('div',{class:'modalBody'},[
+  const body = state.modal.loading
+    ? el('div',{class:'loadwrap'},[el('div',{class:'spinner'}), el('div',{class:'loadmsg'},'Claude is generating the brand-specific section UI...')])
+    : el('div',{class:'modalBody'},[
         el('div',{class:'previewTools'},[
           el('button',{class:'secbtn', onclick:()=>setViewport('desktop')},'View Desktop'),
           el('button',{class:'secbtn', onclick:()=>setViewport('mobile')},'View Mobile'),
@@ -955,15 +1042,60 @@ function wireframeModal(){
           el('b',{},'Why this design belongs to this brand'),
           designRationale(sug)
         ])
-      ])
+      ]);
+  return el('div',{class:'modalBackdrop'},[
+    el('div',{class:'modal'},[
+      el('div',{class:'modalHead'},[
+        el('div',{},[
+          el('div',{class:'suggestionNo'},`Generated Section - ${sug.id}`),
+          el('div',{class:'modalTitle'},`${sug.sectionName}: ${sug.title}`),
+          el('div',{class:'scoreLine'},[
+            el('span',{class:'metaPill'},`Evidence fidelity: ${fidelityScore(sug)}/100`),
+            el('span',{class:'metaPill'},`Evidence used: ${sug.evidence.evidenceId}`),
+            el('span',{class:'metaPill'}, sug.evidence.requiresValidation ? 'Needs rendered validation' : 'Observed')
+          ])
+        ]),
+        el('button',{class:'closeBtn', onclick:closeWireframe, 'aria-label':'Close'},'×')
+      ]),
+      body
     ])
   ]);
 }
 
 function setViewport(viewport){
   state.viewport = viewport;
-  if(state.modal) state.modal.html = generateWireframeHtml(state.modal.suggestion);
+  if(state.modal && state.modal.html && state.modal.html.includes('data-claude-wireframe="true"')){
+    state.modal.html = state.modal.html.replace(/data-viewport="(desktop|mobile|compare)"/, `data-viewport="${viewport}"`);
+  }else if(state.modal){
+    state.modal.html = generateWireframeHtml(state.modal.suggestion);
+  }
   render();
+}
+
+async function callClaudeWireframe(suggestion){
+  const res = await fetch(SUPABASE_ANALYZE_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      action:'generate_wireframe',
+      brand_name:state.inputs.brand,
+      pdp_url:state.inputs.pdp,
+      home_url:state.inputs.home || undefined,
+      collection_url:state.inputs.collection || undefined,
+      viewport:state.viewport,
+      suggestion,
+      brand_tokens:brandTokens(),
+      verified_data:verifiedData(),
+      report_context:{
+        diagnosis:state.result?.report?.diagnosis,
+        above_fold_structure:state.result?.report?.above_fold_structure,
+        offer_architecture:state.result?.report?.offer_architecture
+      }
+    })
+  });
+  const data = await res.json();
+  if(!res.ok || !data.html) throw new Error(data.error || 'Claude wireframe failed');
+  return data.html;
 }
 
 function brandTokens(){
