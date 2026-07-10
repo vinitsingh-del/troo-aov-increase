@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — Report Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-clone-build" content="2026-07-11T00:58:00Z" />
+<meta name="troo-aov-clone-build" content="2026-07-11T01:28:00Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -412,8 +412,8 @@ function statusLabel(status){return status === 'fetched' ? 'Fetched' : status ==
 function reportView(){
   const { report, access_status } = state.result;
   const improvements = safeArray(report.improvements);
-  const topTests = safeArray(report.top_tests);
-  const competitors = safeArray(report.competitors);
+  const topTests = normalizeTests(report.top_tests, improvements);
+  const competitors = normalizeCompetitors(report.competitors);
   const frag = document.createDocumentFragment();
   frag.appendChild(el('div',{class:'reportHead noprint'},[
     el('h2',{},`${state.inputs.brand} - AOV Strategy`),
@@ -446,11 +446,11 @@ function reportView(){
   });
   print.appendChild(section('Top AOV improvements', imp));
   print.appendChild(section('Suggestion cards', suggestionCards(report)));
-  print.appendChild(section('Recommended above-the-fold structure', el('div',{class:'textBlock'},report.above_fold_structure)));
+  print.appendChild(section('Recommended above-the-fold structure', el('div',{class:'textBlock'},aboveFoldText(report, improvements))));
   const table = el('table',{},[el('tr',{},[el('th',{},'Priority'),el('th',{},'Test'),el('th',{},'Why')])]);
   topTests.forEach(t=>table.appendChild(el('tr',{},[el('td',{class:'prio'},String(t.priority || '')),el('td',{},t.test || t.title || 'Validation test'),el('td',{},t.why || t.reason || 'Validate before implementation.')])));
   print.appendChild(section('Top tests to run first', table));
-  print.appendChild(section('Ideal offer architecture', el('div',{class:'textBlock'},report.offer_architecture)));
+  print.appendChild(section('Ideal offer architecture', el('div',{class:'textBlock'},offerArchitectureText(report, improvements))));
   const grid = el('div',{class:'compGrid'});
   competitors.forEach(c=>grid.appendChild(el('div',{class:'compCard'},[
     el('div',{class:'compName'},[c.name || c.brand || 'Competitor', el('span',{class:'confTag'},c.confidence || 'search-based')]),
@@ -468,6 +468,71 @@ function safeArray(value){
   if(Array.isArray(value)) return value;
   if(value && typeof value === 'object') return Object.values(value).filter(item => item && typeof item === 'object');
   return [];
+}
+
+function normalizeTests(value, improvements=[]){
+  const rows = Array.isArray(value)
+    ? value
+    : value && typeof value === 'object'
+      ? Object.values(value)
+      : [];
+  const normalized = rows.map((item, idx)=>{
+    if(typeof item === 'string') return { priority: idx + 1, test: item, why: 'Validate with the rendered page before implementation.' };
+    if(item && typeof item === 'object') return {
+      priority: item.priority || idx + 1,
+      test: item.test || item.title || item.name || `Validation test ${idx + 1}`,
+      why: item.why || item.reason || item.detail || 'Validate with the rendered page before implementation.'
+    };
+    return null;
+  }).filter(Boolean);
+  if(normalized.length) return normalized;
+  return improvements.slice(0, 3).map((item, idx)=>({
+    priority: idx + 1,
+    test: item.title || item.mechanism || `Suggestion ${idx + 1} validation`,
+    why: item.reason || item.problem || 'Validate the recommendation against the rendered page before implementation.'
+  }));
+}
+
+function normalizeCompetitors(value){
+  const rows = Array.isArray(value)
+    ? value
+    : value && typeof value === 'object'
+      ? Object.entries(value).map(([name, detail]) => typeof detail === 'object' ? { name, ...detail } : { name, tactics: String(detail) })
+      : [];
+  return rows.map((item)=>{
+    if(typeof item === 'string') return { name: item, confidence: 'search-based', tactics: 'Tactic details were not returned by the backend.' };
+    if(item && typeof item === 'object') return {
+      name: item.name || item.brand || 'Competitor',
+      confidence: item.confidence || 'search-based',
+      tactics: item.tactics || item.summary || item.note || item.detail || 'Tactic details were not returned by the backend.'
+    };
+    return null;
+  }).filter(Boolean);
+}
+
+function aboveFoldText(report, improvements){
+  const value = String(report.above_fold_structure || '').trim();
+  if(value && !/^Use observed content and validation notes/i.test(value)) return value;
+  const first = improvements[0] || {};
+  const second = improvements[1] || {};
+  const brand = state.inputs.brand || 'this brand';
+  const firstSection = first.sectionName || first.affectedSection || 'primary purchase section';
+  const secondSection = second.sectionName || second.affectedSection || 'supporting proof section';
+  return `${brand} should lead the first viewport with the actual product/title context, verified price or a clear validation note, and the ${firstSection} improvement surfaced before the primary CTA. Directly below that, add the ${secondSection} support module so the shopper sees proof, availability, comparison, or offer logic before leaving the purchase area.`;
+}
+
+function offerArchitectureText(report, improvements){
+  const value = String(report.offer_architecture || '').trim();
+  if(value && !/^Validate offer rules before adding AOV mechanics/i.test(value)) return value;
+  const pricing = improvements.find(item => /price|tier|bundle|offer|subscription|pack/i.test(`${item.title || ''} ${item.problem || ''} ${item.recommendation || ''}`));
+  const proof = improvements.find(item => /review|proof|comparison|stock|availability|delivery/i.test(`${item.title || ''} ${item.problem || ''} ${item.recommendation || ''}`));
+  const base = pricing
+    ? `Base offer: keep the verified single purchase visible, then test "${pricing.title || pricing.mechanism}" only with confirmed SKU, price, and margin rules.`
+    : 'Base offer: keep the verified single purchase path visible and avoid unverified bundle or discount claims.';
+  const support = proof
+    ? `Support it with "${proof.title || proof.mechanism}" near the CTA so the higher-value path has proof or reassurance.`
+    : 'Support it with rendered-page proof, availability, and reassurance before adding new AOV mechanics.';
+  return `${base} ${support}`;
 }
 
 function suggestionCards(report){
@@ -839,15 +904,8 @@ function generateWireframeHtml(sug){
     accent: tokens.accent_color.value,
     muted: '#66716c'
   };
-  const instruction = sug.wireframeInstruction || {};
-  const componentList = Array.isArray(instruction.generateOnly) ? instruction.generateOnly : [];
-  const contextText = instruction.currentSectionContext || sug.evidence.observation || sug.problem;
-  const priceBlock = verified.prices.length
-    ? `<div class="price">${escapeHtml(verified.prices[0])}</div><div class="source">Price signal verified from public read. Confirm exact SKU mapping before launch.</div>`
-    : `<div class="note">Price unavailable in public read; omit price until verified.</div>`;
-  const evidenceComponents = componentList.length
-    ? componentList.slice(0, 6).map((component, idx)=>`<div class="component${idx === 0 ? ' selected' : ''}"><b>${escapeHtml(component)}</b><span>${componentSupportText(component, sug, verified)}</span></div>`).join('')
-    : `<div class="validation">Commercial validation required before adding section elements that were not verified.</div>`;
+  const contextText = sug.wireframeInstruction?.currentSectionContext || sug.evidence.observation || sug.problem;
+  const actualSection = renderActualSection(sug, verified, brand);
   const comparePanel = state.viewport === 'compare'
     ? `<aside class="current"><strong>Current section evidence</strong><p>${escapeHtml(contextText)}</p><p>${escapeHtml(sug.evidence.source?.text || 'No exact DOM screenshot was captured in this lightweight run. Use rendered capture before production handoff.')}</p></aside>`
     : '';
@@ -861,63 +919,103 @@ function generateWireframeHtml(sug){
   #troo-section-${sug.id}{--bg:${cssTokens.bg};--panel:${cssTokens.panel};--text:${cssTokens.text};--muted:${cssTokens.muted};--primary:${cssTokens.primary};--accent:${cssTokens.accent};--line:rgba(0,0,0,.12);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
   *{box-sizing:border-box} body{margin:0;background:#fff;padding:24px}
   #troo-section-${sug.id} .comparison{display:grid;grid-template-columns:${state.viewport === 'compare' ? '1fr 1fr' : '1fr'};gap:18px;max-width:${tokens.container_width};margin:0 auto}
-  #troo-section-${sug.id} section{background:var(--bg);border:1px solid var(--line);border-radius:${tokens.border_radius};padding:22px}
-  #troo-section-${sug.id} .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
-  #troo-section-${sug.id} h1{font-size:28px;line-height:1.1;margin:8px 0 10px;color:var(--text)}
+  #troo-section-${sug.id} section{background:var(--bg);border:1px solid var(--line);border-radius:${tokens.border_radius};padding:24px}
+  #troo-section-${sug.id} .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:800}
+  #troo-section-${sug.id} h1{font-size:30px;line-height:1.08;margin:8px 0 10px;color:var(--text)}
+  #troo-section-${sug.id} h2{font-size:20px;margin:0 0 10px;color:var(--text)}
+  #troo-section-${sug.id} p{line-height:1.5}
   #troo-section-${sug.id} .summary{color:var(--muted);line-height:1.55;margin:0 0 16px}
-  #troo-section-${sug.id} .price{font-size:24px;font-weight:800;margin:8px 0 14px}
-  #troo-section-${sug.id} .source{font-size:12px;color:var(--muted);margin:-8px 0 14px}
-  #troo-section-${sug.id} .note,#troo-section-${sug.id} .validation{border:1px dashed var(--accent);border-radius:8px;padding:12px;margin:10px 0;color:var(--muted);background:rgba(0,0,0,.03)}
-  #troo-section-${sug.id} .context{border-left:3px solid var(--accent);padding:10px 12px;background:rgba(0,0,0,.035);color:var(--muted);line-height:1.45;margin:14px 0}
-  #troo-section-${sug.id} .components{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
-  #troo-section-${sug.id} .component{border:1px solid var(--line);background:var(--panel);border-radius:${tokens.border_radius};padding:12px;text-align:left;color:var(--text)}
-  #troo-section-${sug.id} .component.selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
-  #troo-section-${sug.id} .component b{display:block;text-transform:capitalize} #troo-section-${sug.id} .component span{display:block;color:var(--muted);margin-top:5px;line-height:1.4}
-  #troo-section-${sug.id} .cta{width:100%;border:0;border-radius:${tokens.button_radius};padding:14px;background:var(--primary);color:white;font-weight:800;margin-top:12px}
+  #troo-section-${sug.id} .context{border-left:3px solid var(--accent);padding:10px 12px;background:rgba(0,0,0,.04);color:var(--muted);line-height:1.45;margin:14px 0}
+  #troo-section-${sug.id} .price{font-size:28px;font-weight:900;margin:6px 0}.source{font-size:12px;color:var(--muted)}
+  #troo-section-${sug.id} .actual{display:grid;gap:18px}
+  #troo-section-${sug.id} .purchaseShell{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(320px,1.2fr);gap:22px;align-items:start}
+  #troo-section-${sug.id} .mediaPanel{border:1px solid var(--line);border-radius:${tokens.border_radius};background:var(--panel);min-height:320px;padding:16px;display:flex;flex-direction:column;justify-content:space-between}
+  #troo-section-${sug.id} .mediaMock{border-radius:${tokens.border_radius};min-height:220px;background:linear-gradient(135deg,rgba(0,0,0,.08),rgba(0,0,0,.02));display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700;text-align:center;padding:18px}
+  #troo-section-${sug.id} .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.thumbs span{height:46px;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.45)}
+  #troo-section-${sug.id} .panel{border:1px solid var(--line);border-radius:${tokens.border_radius};background:var(--panel);padding:16px}
+  #troo-section-${sug.id} .badgeRow{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.badge{border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;background:rgba(255,255,255,.5)}
+  #troo-section-${sug.id} .statusGrid,.tierGrid,.reviewGrid,.specGrid,.galleryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+  #troo-section-${sug.id} .statusCard,.tier,.review,.spec,.galleryCell{border:1px solid var(--line);border-radius:${tokens.border_radius};padding:14px;background:rgba(255,255,255,.58)}
+  #troo-section-${sug.id} .tier.selected,.statusCard.selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+  #troo-section-${sug.id} .tier strong,.statusCard strong,.spec strong,.review strong{display:block;margin-bottom:4px}
+  #troo-section-${sug.id} .cta{width:100%;border:0;border-radius:${tokens.button_radius};padding:15px;background:var(--primary);color:white;font-weight:900;margin-top:12px}
+  #troo-section-${sug.id} .secondaryCta{width:100%;border:1px solid var(--line);border-radius:${tokens.button_radius};padding:13px;background:transparent;color:var(--text);font-weight:800;margin-top:8px}
+  #troo-section-${sug.id} .compareTable{width:100%;border-collapse:collapse;margin-top:14px}.compareTable th,.compareTable td{border:1px solid var(--line);padding:12px;text-align:left;vertical-align:top}.compareTable th{background:rgba(0,0,0,.04)}
+  #troo-section-${sug.id} .note{border:1px dashed var(--accent);border-radius:${tokens.border_radius};padding:12px;color:var(--muted);background:rgba(0,0,0,.03);margin-top:12px}
   #troo-section-${sug.id} .current{background:#f6f6f4;border:1px solid var(--line);border-radius:${tokens.border_radius};padding:18px;color:#333;line-height:1.5}
-  @media(max-width:720px){body{padding:12px}#troo-section-${sug.id} .comparison{grid-template-columns:1fr}#troo-section-${sug.id} .components{grid-template-columns:1fr}#troo-section-${sug.id} h1{font-size:23px}}
+  @media(max-width:720px){body{padding:12px}#troo-section-${sug.id} .comparison,#troo-section-${sug.id} .purchaseShell,#troo-section-${sug.id} .statusGrid,#troo-section-${sug.id} .tierGrid,#troo-section-${sug.id} .reviewGrid,#troo-section-${sug.id} .specGrid,#troo-section-${sug.id} .galleryGrid{grid-template-columns:1fr}#troo-section-${sug.id} h1{font-size:23px}}
 </style>
 </head>
 <body>
   <main id="troo-section-${sug.id}">
     <div class="comparison">
       ${comparePanel}
-      <section data-section-type="${escapeHtml(sug.sectionType)}" aria-label="${escapeHtml(sug.sectionName)}">
-        <div class="eyebrow">${escapeHtml(brand)} · ${escapeHtml(sug.sectionName)}</div>
-        <h1>${safeTitle}</h1>
-        <p class="summary">${escapeHtml(sug.recommendation)}</p>
-        <div class="context"><strong>Section context:</strong> ${escapeHtml(contextText)}</div>
-        ${priceBlock}
-        <div class="components">${evidenceComponents}</div>
-        <button class="cta" type="button">${ctaFor(sug)}</button>
-        <p class="note">Implementation note: ${escapeHtml((sug.dependencies || [])[0] || 'Validate current section DOM before launch.')}</p>
-      </section>
+      ${actualSection}
     </div>
   </main>
 </body>
 </html>`;
 }
 
-function componentSupportText(component, sug, verified){
-  const text = String(component).toLowerCase();
-  if(text.includes('price')) return verified.prices.length ? `Use verified public price signal ${verified.prices[0]}; confirm exact SKU mapping.` : 'Do not show price until visible in rendered validation.';
-  if(text.includes('cta') || text.includes('add to cart')) return `CTA should support: ${sug.recommendation}`;
-  if(text.includes('product') || text.includes('title')) return verified.productName ? `Use page title/context: ${verified.productName}` : 'Use actual PDP title after rendered read.';
-  if(text.includes('evidence') || text.includes('context')) return sug.evidence.observation;
-  if(text.includes('bundle') || text.includes('offer') || text.includes('quantity')) return 'Only use real bundle labels, thresholds or pack sizes after merchant validation.';
-  return sug.reason || 'Keep this element scoped to the affected section and backed by page evidence.';
+function renderActualSection(sug, verified, brand){
+  const kind = sectionKind(sug);
+  const title = escapeHtml(sug.title);
+  const sectionName = escapeHtml(sug.sectionName);
+  const recommendation = escapeHtml(sug.recommendation);
+  const context = escapeHtml(sug.evidence.observation || sug.problem);
+  const price = verified.prices[0] || '';
+  const priceHtml = price
+    ? `<div class="price">${escapeHtml(price)}</div><div class="source">Verified from public read; confirm SKU mapping.</div>`
+    : `<div class="note">Price unavailable in public read; keep price hidden until rendered validation confirms it.</div>`;
+  const note = `<div class="note">Implementation note: ${escapeHtml((sug.dependencies || [])[0] || 'Validate rendered DOM, copy, pricing and offer rules before launch.')}</div>`;
+  const shellOpen = `<section class="actual" data-section-type="${escapeHtml(sug.sectionType)}" aria-label="${sectionName}"><div><div class="eyebrow">${escapeHtml(brand)} · ${sectionName}</div><h1>${title}</h1><p class="summary">${recommendation}</p><div class="context"><strong>Section context:</strong> ${context}</div></div>`;
+  const productMedia = `<div class="mediaPanel"><div class="mediaMock">${escapeHtml(verified.productName || brand)}<br><span style="font-size:12px;color:var(--muted)">Use actual brand imagery from the section</span></div><div class="thumbs"><span></span><span></span><span></span><span></span></div></div>`;
+  if(kind === 'stock'){
+    return `${shellOpen}<div class="purchaseShell">${productMedia}<div class="panel">${priceHtml}<div class="badgeRow"><span class="badge">Inventory badge</span><span class="badge">Fulfilment timeline</span><span class="badge">Delivery promise</span></div><div class="statusGrid"><div class="statusCard selected"><strong>In stock state</strong><span>Show only after inventory feed validates availability.</span></div><div class="statusCard"><strong>Dispatch state</strong><span>Use real fulfilment SLA, not a guessed shipping promise.</span></div></div><button class="cta">${ctaFor(sug)}</button><button class="secondaryCta">Check delivery details</button>${note}</div></div></section>`;
+  }
+  if(kind === 'pricing'){
+    return `${shellOpen}<div class="purchaseShell">${productMedia}<div class="panel">${priceHtml}<div class="tierGrid"><div class="tier selected"><strong>Single unit</strong><span>${price ? escapeHtml(price) : 'Validated price required'}</span></div><div class="tier"><strong>Higher-value option</strong><span>Use real quantity, bundle or subscription rule only when confirmed.</span></div><div class="tier"><strong>Routine pack</strong><span>Map to actual SKU set before launch.</span></div><div class="tier"><strong>Best-value callout</strong><span>No fake savings; show real math only.</span></div></div><button class="cta">${ctaFor(sug)}</button>${note}</div></div></section>`;
+  }
+  if(kind === 'comparison'){
+    return `${shellOpen}<div class="panel"><table class="compareTable"><thead><tr><th>Decision point</th><th>${escapeHtml(brand)}</th><th>Alternative</th></tr></thead><tbody><tr><td>Proof</td><td>${context}</td><td>Use only verified competitor claims.</td></tr><tr><td>Offer</td><td>${price ? escapeHtml(price) : 'Price requires validation'}</td><td>No invented discounts or thresholds.</td></tr><tr><td>CTA</td><td>${escapeHtml(sug.recommendation)}</td><td>Keep section scoped, not a full-page redesign.</td></tr></tbody></table>${note}</div></section>`;
+  }
+  if(kind === 'reviews'){
+    return `${shellOpen}<div class="panel"><div class="reviewGrid"><div class="review"><strong>Review summary module</strong><span>Use actual rating/review count only when present in rendered page.</span></div><div class="review"><strong>Verified buyer proof</strong><span>${context}</span></div><div class="review"><strong>Media review slot</strong><span>Pull real customer media if available.</span></div><div class="review"><strong>Objection answer</strong><span>Map review themes to purchase anxiety.</span></div></div><button class="cta">Use review proof near CTA</button>${note}</div></section>`;
+  }
+  if(kind === 'details'){
+    return `${shellOpen}<div class="purchaseShell">${productMedia}<div class="panel"><div class="specGrid"><div class="spec"><strong>What it is</strong><span>${context}</span></div><div class="spec"><strong>Size / quantity</strong><span>Show verified pack size only.</span></div><div class="spec"><strong>Ingredients / materials</strong><span>Use actual brand copy from PDP.</span></div><div class="spec"><strong>How to use</strong><span>Keep steps short and section-scoped.</span></div></div><button class="cta">Add details to purchase section</button>${note}</div></div></section>`;
+  }
+  if(kind === 'gallery'){
+    return `${shellOpen}<div class="panel"><div class="galleryGrid"><div class="galleryCell">Hero product shot</div><div class="galleryCell">Use-case visual</div><div class="galleryCell">Before / after or benefit proof</div><div class="galleryCell">Scale, pack or ingredient visual</div></div><div class="note">Replace all cells with actual brand assets from the PDP/gallery. Do not use stock placeholders in production.</div><button class="cta">Apply gallery section</button></div></section>`;
+  }
+  if(kind === 'collection'){
+    return `${shellOpen}<div class="panel"><div class="tierGrid"><div class="tier selected"><strong>${escapeHtml(verified.productName || sug.title)}</strong><span>${price || 'Validated price required'}</span><button class="cta">Quick add</button></div><div class="tier"><strong>Value badge area</strong><span>Use real pack, offer or proof badge only.</span></div></div>${note}</div></section>`;
+  }
+  return `${shellOpen}<div class="purchaseShell">${productMedia}<div class="panel">${priceHtml}<div class="statusGrid"><div class="statusCard selected"><strong>${sectionName}</strong><span>${context}</span></div><div class="statusCard"><strong>Improved action</strong><span>${recommendation}</span></div></div><button class="cta">${ctaFor(sug)}</button>${note}</div></div></section>`;
+}
+
+function sectionKind(sug){
+  const text = `${sug.title} ${sug.sectionName} ${sug.sectionType} ${sug.problem} ${sug.recommendation}`.toLowerCase();
+  if(/stock|inventory|availability|shipping|delivery|fulfil/.test(text)) return 'stock';
+  if(/price|pricing|tier|bundle|discount|subscription|quantity|pack|offer/.test(text)) return 'pricing';
+  if(/comparison|compare|competitor|versus|vs\\.?/.test(text)) return 'comparison';
+  if(/review|rating|testimonial|social proof|proof/.test(text)) return 'reviews';
+  if(/ingredient|spec|detail|size|quantity|safety|how to use|usage|material/.test(text)) return 'details';
+  if(/image|gallery|visual|photo|media|before after/.test(text) || text.includes('before/after')) return 'gallery';
+  if(/collection|card|grid|quick add/.test(text)) return 'collection';
+  return 'purchase';
 }
 
 function verifiedData(){
   const report = state.result?.report || {};
   const access = state.result?.access_status || {};
-  const diagnosis = report.diagnosis || '';
-  const prices = Array.from(new Set((diagnosis.match(/(?:₹|rs\.?|inr|\$)\s?[\d,]+(?:\.\d{1,2})?/gi) || [])
+  const text = reportText();
+  const prices = Array.from(new Set((text.match(/(?:₹\s?[\d,]+(?:\.\d{1,2})?|rs\.?\s?[\d,]+(?:\.\d{1,2})?|inr\s?[\d,]+(?:\.\d{1,2})?|\$\s?[\d,]+(?:\.\d{1,2})?)/gi) || [])
     .map(price => price.replace(/[,\s]+$/g, '').trim())
-    .filter(Boolean)
+    .filter(price => /\d/.test(price))
     .slice(0, 6)));
   const rawTitle = access.pdp?.title || '';
-  const pdpTitle = /404|not found|access denied|forbidden/i.test(rawTitle) ? (state.inputs.brand || '') : rawTitle;
+  const pdpTitle = /404|not found|access denied|forbidden/i.test(rawTitle) ? (state.inputs.brand || '') : cleanPageTitle(rawTitle);
   const offers = prices.slice(0, 4).map((price, idx)=>({
     label: idx === 0 ? (pdpTitle || 'Observed public price signal') : `Observed public price signal ${idx + 1}`,
     price
@@ -931,6 +1029,21 @@ function verifiedData(){
     shippingThreshold:null,
     images:[]
   };
+}
+
+function reportText(){
+  const report = state.result?.report || {};
+  const parts = [report.diagnosis, report.above_fold_structure, report.offer_architecture];
+  safeArray(report.improvements).forEach(item => parts.push(item.title, item.mechanism, item.problem, item.detail, item.recommendation, item.reason, item.evidence?.observation, item.evidence?.source?.text));
+  return parts.filter(Boolean).join(' ');
+}
+
+function cleanPageTitle(value){
+  return String(value || '')
+    .replace(/\s*URL Source:[\s\S]*$/i, '')
+    .replace(/\s*Markdown Content:[\s\S]*$/i, '')
+    .trim()
+    .slice(0, 140);
 }
 
 function ctaFor(sug){
@@ -972,11 +1085,28 @@ function downloadWireframeHtml(sug){
 }
 
 async function copyDeveloperPrompt(sug){
-  await navigator.clipboard.writeText(JSON.stringify({
+  const prompt = {
+    role: 'Senior ecommerce UI/CRO designer',
+    task: 'Generate ONLY the improved affected section, not a full page. Match the submitted brand page visual system and use the current section context as the source of truth.',
     suggestion: sug,
     brand_tokens: brandTokens(),
-    task: 'Generate only the improved affected section. Preserve the existing site header, navigation, footer, product gallery, reviews, and recommendation carousel. Return production-ready responsive HTML/CSS for desktop and mobile.'
-  }, null, 2));
+    source_context: {
+      brand: state.inputs.brand,
+      page_url: sug.pageUrl,
+      page_title: sug.evidence.source?.pageTitle || state.result?.access_status?.pdp?.title || '',
+      evidence: sug.evidence,
+      verified_data: verifiedData()
+    },
+    output_requirements: [
+      'Return responsive HTML and scoped CSS only.',
+      'Use the actual affected section type: pricing, stock/CTA, comparison table, reviews, specs/details, gallery, collection card, or purchase box.',
+      'Preserve the existing site header, navigation, footer, full product gallery, reviews list, and recommendation carousel unless the affected section is specifically one of those.',
+      'Do not invent discounts, review counts, ratings, stock state, delivery promise, price, ingredients, claims, or competitor facts.',
+      'If a value is not verified, render a validation note in the UI rather than fake content.',
+      'Desktop and mobile must both look like production UI, not a wireframe sketch.'
+    ]
+  };
+  await navigator.clipboard.writeText(JSON.stringify(prompt, null, 2));
   state.notice = 'Developer prompt copied.';
   render();
 }
