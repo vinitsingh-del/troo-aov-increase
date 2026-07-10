@@ -570,11 +570,34 @@ function fallbackAovMechanisms(){
       {mechanism:'Homepage threshold education', applies_to:'home', detail:'Explain the verified threshold or value ladder before shoppers reach PDP, especially when home page traffic is high.'}
     );
   }
-  return items;
+  return orderFallbacksByCategory(items);
 }
 
 function hasProvidedPage(page){
   return page === 'home' ? Boolean(state.inputs.home) : page === 'collection' ? Boolean(state.inputs.collection) : Boolean(state.inputs.pdp);
+}
+
+function orderFallbacksByCategory(items){
+  const text = `${state.inputs.brand || ''} ${state.inputs.pdp || ''} ${state.inputs.home || ''} ${state.inputs.collection || ''} ${state.result?.access_status?.pdp?.title || ''} ${state.result?.report?.diagnosis || ''}`.toLowerCase();
+  let preferred = ['quantity break', 'bundle', 'threshold', 'order bump'];
+  if(/clean|home|kitchen|laundry|floor|toilet|bathroom|dish|refill|limescale/.test(text)){
+    preferred = ['refill', 'stock-up', 'best-value bundle', 'quantity break', 'threshold'];
+  }else if(/earbud|headphone|speaker|watch|electronic|charger|boat|audio/.test(text)){
+    preferred = ['add-on', 'cross-sell', 'upsell', 'cart drawer', 'kit', 'threshold'];
+  }else if(/skin|beauty|serum|sunscreen|hair|makeup|cleanser|moistur/.test(text)){
+    preferred = ['routine', 'subscription', 'bundle', 'gift', 'threshold'];
+  }else if(/protein|supplement|vitamin|nutrition|wellness/.test(text)){
+    preferred = ['subscription', 'stock-up', 'routine', 'bundle', 'threshold'];
+  }else if(/ring|jewel|gift|necklace|bracelet|silver|gold|diamond/.test(text)){
+    preferred = ['gift', 'cross-sell', 'kit', 'threshold', 'bundle'];
+  }
+  return [...items].sort((a,b)=>fallbackRank(a, preferred) - fallbackRank(b, preferred));
+}
+
+function fallbackRank(item, preferred){
+  const text = `${item.mechanism || ''} ${item.detail || ''}`.toLowerCase();
+  const hit = preferred.findIndex(term => text.includes(term));
+  return hit === -1 ? 99 : hit;
 }
 
 function normalizeTests(value, improvements=[]){
