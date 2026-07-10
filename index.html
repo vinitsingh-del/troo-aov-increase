@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — by Troopod</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-build" content="2026-07-10T17:20:08Z" />
+<meta name="troo-aov-build" content="2026-07-10T17:22:23Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -89,7 +89,6 @@
 <script>
 const TROO_AOV_CONFIG = window.TROO_AOV_CONFIG || {
   supabaseUrl: '',
-  supabaseAnonKey: '',
   functionName: 'analyze-aov'
 };
 
@@ -108,7 +107,7 @@ const APP_STATE = {
   report: null,
   reportMeta: null,
   inputs: { pdp:'', home:'', collection:'', brand:'' },
-  backendUrl: localStorage.getItem('troo_aov_backend_url') || configuredFunctionUrl()
+  backendUrl: configuredFunctionUrl()
 };
 
 function h(tag, attrs, children){
@@ -140,7 +139,7 @@ function header(){
   return h('div',{},[
     h('div',{class:'brandline'},[h('div',{class:'brandmark'}), h('span',{},'Troopod internal tool')]),
     h('div',{class:'title'},['TROO AOV ', h('em',{},'INCREASE')]),
-    h('div',{class:'subtitle'},'Paste a PDP, home page and collection page. Supabase reads the live pages, stores the run status, and returns a prioritized offer architecture — plus what 3 real competitors are doing differently.')
+    h('div',{class:'subtitle'},'Paste a PDP, home page and collection page. The secured backend reads the live pages, stores the run status, and returns a prioritized offer architecture — plus what 3 real competitors are doing differently.')
   ]);
 }
 
@@ -152,26 +151,8 @@ function inputField(id, labelText, placeholder, required){
   return h('div',{},[lbl,inp]);
 }
 
-function backendConfigCard(){
-  const card = h('div',{class:'card'});
-  const row = h('div',{class:'configRow'},[
-    h('label',{style:'margin:0;'},'Supabase Edge Function URL'),
-  ]);
-  card.appendChild(row);
-  const inp = h('input',{type:'text', id:'backendUrl', placeholder:'https://YOUR-PROJECT.supabase.co/functions/v1/analyze-aov'});
-  inp.value = APP_STATE.backendUrl;
-  inp.addEventListener('input', e=>{
-    APP_STATE.backendUrl = e.target.value.trim();
-    localStorage.setItem('troo_aov_backend_url', APP_STATE.backendUrl);
-  });
-  card.appendChild(inp);
-  card.appendChild(h('div',{class:'configNote'},'This is the deployed Supabase function created from supabase/functions/analyze-aov. The page never talks to Claude directly; Supabase owns the fetch, report generation, and aov_reports logging. Saved locally in this browser.'));
-  return card;
-}
-
 function formView(){
   const wrap = document.createDocumentFragment();
-  wrap.appendChild(backendConfigCard());
 
   const card = h('div',{class:'card'});
   card.appendChild(inputField('brand','Brand name','e.g. Happi Planet', true));
@@ -385,10 +366,6 @@ function repairAndParseJSON(raw){
 
 async function callBackend(payload){
   const headers = { 'Content-Type': 'application/json' };
-  if(TROO_AOV_CONFIG.supabaseAnonKey){
-    headers.apikey = TROO_AOV_CONFIG.supabaseAnonKey;
-    headers.Authorization = 'Bearer ' + TROO_AOV_CONFIG.supabaseAnonKey;
-  }
   const res = await fetch(APP_STATE.backendUrl, {
     method: 'POST',
     headers,
@@ -419,7 +396,7 @@ async function callBackend(payload){
 async function runAnalysis(){
   const inputs = APP_STATE.inputs;
   if(!APP_STATE.backendUrl){
-    APP_STATE.error = 'Set the Supabase Edge Function URL above first, then generate the report.';
+    APP_STATE.error = 'Supabase is not connected on this deployment yet. The report backend needs to be deployed and linked once by the site owner.';
     render();
     return;
   }

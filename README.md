@@ -42,11 +42,20 @@ microservice accepting `{ url }` and returning `{ html }`). Without it, JS-heavy
 will often come back "partial" or "not accessible" rather than fully fetched — flagged
 as a known v1 gap in the PRD, worth deciding on before relying on this for real client PDPs.
 
-## 2. Point the frontend at your backend
+## 2. Link the frontend to Supabase
 
-Open the deployed GitHub Pages URL, paste your Supabase function URL into the
-**Supabase Edge Function URL** field at the top. It's saved in that browser's local
-storage, so you only set it once per browser.
+The public page does not expose a Supabase URL field. Before publishing, set the
+Supabase project URL in `index.html`:
+
+```js
+const TROO_AOV_CONFIG = window.TROO_AOV_CONFIG || {
+  supabaseUrl: 'https://<project-ref>.supabase.co',
+  functionName: 'analyze-aov'
+};
+```
+
+The frontend will call:
+`https://<project-ref>.supabase.co/functions/v1/analyze-aov`
 
 ## 3. Calling the backend directly (for testing without the UI)
 
