@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — Report Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-clone-build" content="2026-07-10T17:55:00Z" />
+<meta name="troo-aov-clone-build" content="2026-07-10T18:18:00Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -71,6 +71,29 @@
   .compName{font:600 14.5px "Space Grotesk",sans-serif;margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
   .confTag{font:9px "JetBrains Mono",monospace;color:var(--amber);background:rgba(224,168,78,.14);border-radius:10px;padding:3px 7px;white-space:nowrap}
   .compBody{color:var(--muted);font-size:13px;line-height:1.6}
+  .suggestionGrid{display:grid;grid-template-columns:1fr;gap:14px}
+  .suggestionCard{border:1px solid var(--line);border-radius:8px;background:var(--panel-2);padding:18px}
+  .suggestionTop{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
+  .suggestionNo{font:700 13px "JetBrains Mono",monospace;color:var(--crimson);letter-spacing:.05em;text-transform:uppercase}
+  .suggestionTitle{font:700 18px "Space Grotesk",sans-serif;color:var(--white);margin-top:4px}
+  .metaPills{display:flex;gap:7px;flex-wrap:wrap}
+  .metaPill{font:10px "JetBrains Mono",monospace;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:5px 8px;color:var(--muted)}
+  .suggestionFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+  @media(max-width:760px){.suggestionFields{grid-template-columns:1fr}}
+  .fieldBox{border-top:1px solid var(--line);padding-top:10px;color:#d7d4de;font-size:13.5px;line-height:1.55}
+  .fieldBox b{display:block;font:10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .suggestionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal{width:min(1120px,100%);max-height:92vh;overflow:auto;background:#111015;border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 70px rgba(0,0,0,.5)}
+  .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px;border-bottom:1px solid var(--line)}
+  .modalTitle{font:700 18px "Space Grotesk",sans-serif}
+  .modalBody{padding:18px 20px}
+  .previewTools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .previewFrameWrap{margin:0 auto;border:1px solid var(--line);border-radius:8px;background:white;overflow:hidden;transition:width .2s ease;max-width:100%}
+  .previewFrameWrap.desktop{width:980px}
+  .previewFrameWrap.mobile{width:390px}
+  .previewFrame{display:block;width:100%;height:620px;border:0;background:white}
+  .closeBtn{background:transparent;border:0;color:var(--muted);font-size:24px;cursor:pointer;line-height:1}
   .footNote{margin-top:32px;padding-top:18px;border-top:1px solid var(--line);color:#5a5763;font:11.5px "JetBrains Mono",monospace;line-height:1.7}
   @media print{.noprint{display:none!important}}
 </style>
@@ -86,7 +109,9 @@ const state = {
   notice: '',
   loadMsg: '',
   inputs: { brand:'', pdp:'', home:'', collection:'' },
-  result: null
+  result: null,
+  modal: null,
+  viewport: 'desktop'
 };
 
 function el(tag, attrs, children){
@@ -109,6 +134,7 @@ function render(){
   if(state.view === 'form') app.appendChild(formView());
   if(state.view === 'loading') app.appendChild(loadingView());
   if(state.view === 'report') app.appendChild(reportView());
+  if(state.modal) app.appendChild(wireframeModal());
 }
 
 function header(){
@@ -158,6 +184,37 @@ function isUrl(value){
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
   }catch(e){ return false; }
+}
+
+function encodeSharePayload(){
+  return btoa(unescape(encodeURIComponent(JSON.stringify({
+    inputs: state.inputs,
+    result: state.result,
+    shared_at: new Date().toISOString()
+  })))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+function decodeSharePayload(value){
+  const padded = value.replace(/-/g,'+').replace(/_/g,'/') + '==='.slice((value.length + 3) % 4);
+  return JSON.parse(decodeURIComponent(escape(atob(padded))));
+}
+
+function loadSharedReport(){
+  const match = location.hash.match(/report=([^&]+)/);
+  if(!match) return false;
+  try{
+    const payload = decodeSharePayload(match[1]);
+    if(payload?.inputs && payload?.result?.report){
+      state.inputs = payload.inputs;
+      state.result = payload.result;
+      state.view = 'report';
+      state.notice = 'Shared report loaded.';
+      return true;
+    }
+  }catch(e){
+    state.error = 'Could not open the shared report link.';
+  }
+  return false;
 }
 
 function readerUrl(url){
@@ -349,6 +406,7 @@ function reportView(){
   frag.appendChild(el('div',{class:'reportHead noprint'},[
     el('h2',{},`${state.inputs.brand} - AOV Strategy`),
     el('div',{class:'btnrow'},[
+      el('button',{class:'secbtn', onclick:copyShareLink},'Copy share link'),
       el('button',{class:'secbtn', onclick:copyReport},'Copy report'),
       el('button',{class:'secbtn', onclick:downloadPdf},'Download PDF'),
       el('button',{class:'secbtn', onclick:()=>{state.view='form'; render();}},'New analysis')
@@ -375,6 +433,7 @@ function reportView(){
     ]));
   });
   print.appendChild(section('Top AOV improvements', imp));
+  print.appendChild(section('Suggestion cards', suggestionCards(report)));
   print.appendChild(section('Recommended above-the-fold structure', el('div',{class:'textBlock'},report.above_fold_structure)));
   const table = el('table',{},[el('tr',{},[el('th',{},'Priority'),el('th',{},'Test'),el('th',{},'Why')])]);
   report.top_tests.forEach(t=>table.appendChild(el('tr',{},[el('td',{class:'prio'},String(t.priority)),el('td',{},t.test),el('td',{},t.why)])));
@@ -393,11 +452,284 @@ function reportView(){
 
 function section(title, body){return el('section',{class:'card'},[el('div',{class:'sectionTitle'},title),body])}
 
+function suggestionCards(report){
+  const wrap = el('div',{class:'suggestionGrid'});
+  buildSuggestions(report).forEach((sug, idx)=>{
+    wrap.appendChild(el('article',{class:'suggestionCard'},[
+      el('div',{class:'suggestionTop'},[
+        el('div',{},[
+          el('div',{class:'suggestionNo'},`Suggestion #${String(idx+1).padStart(2,'0')}`),
+          el('div',{class:'suggestionTitle'},sug.title)
+        ]),
+        el('div',{class:'metaPills'},[
+          el('span',{class:'metaPill'},`Page: ${sug.pageType}`),
+          el('span',{class:'metaPill'},`Priority: ${sug.priority}`),
+          el('span',{class:'metaPill'},`Effort: ${sug.effort}`)
+        ])
+      ]),
+      el('div',{class:'suggestionFields'},[
+        fieldBox('Page Type', sug.pageType),
+        fieldBox('Affected Section', sug.sectionName),
+        fieldBox('Current Problem', sug.problem),
+        fieldBox('Why It Matters', sug.reason),
+        fieldBox('Recommended Change', sug.recommendation),
+        fieldBox('Expected Impact', `${sug.expectedImpact.primaryMetric}; ${sug.expectedImpact.secondaryMetric}; confidence ${sug.expectedImpact.confidence}`),
+      ]),
+      el('div',{class:'suggestionActions'},[
+        el('button',{class:'secbtn', onclick:()=>openWireframe(sug)},'Generate Wireframe'),
+        el('button',{class:'secbtn', onclick:()=>copyDeveloperPrompt(sug)},'Copy Developer Prompt')
+      ])
+    ]));
+  });
+  return wrap;
+}
+
+function fieldBox(label, value){
+  return el('div',{class:'fieldBox'},[el('b',{},label), value || 'Not specified']);
+}
+
+function buildSuggestions(report){
+  const defaults = [
+    {
+      title:'Move Quantity Deals Below the Price',
+      sectionType:'pdp_purchase_box',
+      sectionName:'PDP Purchase Box',
+      problem:'Bundle offers appear too far below the main Add to Cart section.',
+      recommendation:'Display 1, 2, 3 and 5-product purchase options immediately below the product price.',
+      reason:'Users should see higher-value purchase options before selecting Add to Cart.',
+      affectedSection:'PDP Purchase Box',
+      priority:'High',
+      effort:'Medium'
+    },
+    {
+      title:'Add a Free Shipping Progress Bar',
+      sectionType:'cart_drawer',
+      sectionName:'Cart Drawer',
+      problem:'The shopper does not see a clear reward for adding one more item.',
+      recommendation:'Show an amount-left progress bar with a relevant add-on beneath it.',
+      reason:'A visible threshold creates a concrete reason to increase cart size.',
+      affectedSection:'Cart Drawer Reward Area',
+      priority:'High',
+      effort:'Medium'
+    },
+    {
+      title:'Create a Starter Bundle as the Default Choice',
+      sectionType:'pdp_purchase_box',
+      sectionName:'PDP Purchase Box',
+      problem:'The page frames the purchase as a single SKU instead of a complete solution.',
+      recommendation:'Make the 2 or 3-item starter bundle the most prominent card near the CTA.',
+      reason:'A bundle reframes the higher-value cart as the recommended way to buy.',
+      affectedSection:'Bundle Selector',
+      priority:'High',
+      effort:'Medium'
+    }
+  ];
+  return (report.improvements || []).slice(0, 8).map((item, idx)=>{
+    const base = defaults[idx] || suggestionFromImprovement(item, idx);
+    return {
+      id:`sug_${String(idx+1).padStart(3,'0')}`,
+      title: base.title,
+      pageType: pageTypeLabel(item.applies_to),
+      pageUrl: pageUrlFor(item.applies_to),
+      sectionType: base.sectionType || sectionTypeFor(item.applies_to),
+      sectionName: base.sectionName || base.affectedSection || 'Conversion Section',
+      problem: base.problem,
+      recommendation: base.recommendation || item.detail,
+      reason: base.reason || 'The change makes the next higher-value purchase path more visible before checkout intent drops.',
+      priority: base.priority || (idx < 3 ? 'High' : 'Medium'),
+      effort: base.effort || (idx < 5 ? 'Medium' : 'Low'),
+      expectedImpact: {
+        primaryMetric:'average_order_value',
+        secondaryMetric: item.applies_to === 'collection' ? 'revenue_per_collection_session' : 'revenue_per_pdp_session',
+        confidence: idx < 4 ? 'high' : 'medium'
+      },
+      wireframeInstruction: {
+        generateOnly:['product title','rating summary','price','quantity deal cards','add to cart','order bump','trust messages'],
+        exclude:['header','navigation','footer','full product gallery','reviews section','recommendation carousel']
+      }
+    };
+  });
+}
+
+function suggestionFromImprovement(item, idx){
+  return {
+    title:item.mechanism,
+    sectionType:sectionTypeFor(item.applies_to),
+    sectionName:item.applies_to === 'collection' ? 'Collection Product Grid' : item.applies_to === 'home' ? 'Homepage Offer Module' : 'PDP Purchase Box',
+    problem:'The current page does not make this AOV lever visible early enough in the shopping flow.',
+    recommendation:item.detail,
+    reason:'Mapping the suggestion to a specific section makes it easier for design and development to implement without changing unrelated page areas.',
+    priority:idx < 5 ? 'High' : 'Medium',
+    effort:idx < 5 ? 'Medium' : 'Low'
+  };
+}
+
+function pageTypeLabel(value){
+  return value === 'home' ? 'Homepage' : value === 'collection' ? 'Collection Page' : 'Product Page';
+}
+
+function pageUrlFor(value){
+  if(value === 'home') return state.inputs.home || domainName(state.inputs.pdp);
+  if(value === 'collection') return state.inputs.collection || domainName(state.inputs.pdp);
+  return state.inputs.pdp;
+}
+
+function sectionTypeFor(value){
+  if(value === 'home') return 'homepage_offer_module';
+  if(value === 'collection') return 'collection_product_grid';
+  return 'pdp_purchase_box';
+}
+
 async function copyReport(){
   await navigator.clipboard.writeText(document.getElementById('reportPrintArea').innerText);
   state.notice = 'Report copied.';
   render();
 }
+
+async function copyShareLink(){
+  const url = `${location.origin}${location.pathname}#report=${encodeSharePayload()}`;
+  await navigator.clipboard.writeText(url);
+  state.notice = 'Shareable brand report link copied.';
+  render();
+}
+
+function openWireframe(suggestion){
+  state.modal = {
+    suggestion,
+    html: generateWireframeHtml(suggestion)
+  };
+  state.viewport = 'desktop';
+  render();
+}
+
+function closeWireframe(){
+  state.modal = null;
+  render();
+}
+
+function wireframeModal(){
+  const sug = state.modal.suggestion;
+  return el('div',{class:'modalBackdrop'},[
+    el('div',{class:'modal'},[
+      el('div',{class:'modalHead'},[
+        el('div',{},[
+          el('div',{class:'suggestionNo'},`Wireframe - ${sug.id}`),
+          el('div',{class:'modalTitle'},sug.title)
+        ]),
+        el('button',{class:'closeBtn', onclick:closeWireframe},'×')
+      ]),
+      el('div',{class:'modalBody'},[
+        el('div',{class:'previewTools'},[
+          el('button',{class:'secbtn', onclick:()=>setViewport('desktop')},'View Desktop'),
+          el('button',{class:'secbtn', onclick:()=>setViewport('mobile')},'View Mobile'),
+          el('button',{class:'secbtn', onclick:()=>downloadWireframeHtml(sug)},'Download HTML'),
+          el('button',{class:'secbtn', onclick:()=>copyDeveloperPrompt(sug)},'Copy Developer Prompt')
+        ]),
+        el('div',{class:`previewFrameWrap ${state.viewport}`},[
+          el('iframe',{class:'previewFrame', srcdoc:state.modal.html, title:`${sug.title} preview`})
+        ])
+      ])
+    ])
+  ]);
+}
+
+function setViewport(viewport){
+  state.viewport = viewport;
+  render();
+}
+
+function brandTokens(){
+  return {
+    primary_color:'#8a6cf5',
+    secondary_color:'#131217',
+    accent_color:'#d14a61',
+    background_color:'#0a0a0d',
+    text_color:'#f4f2f6',
+    heading_font:'Space Grotesk',
+    body_font:'Inter',
+    border_radius:'8px',
+    button_radius:'8px',
+    button_style:'solid high-contrast',
+    shadow_style:'soft crimson/purple glow',
+    container_width:'1120px',
+    logo_url:'',
+    icon_style:'minimal line icons',
+    product_image_style:'clean ecommerce product card',
+    raw_tokens_json:{ source:'TROO AOV clone visual system' }
+  };
+}
+
+function generateWireframeHtml(sug){
+  const tokens = brandTokens();
+  const brand = state.inputs.brand || 'Brand';
+  const safeTitle = escapeHtml(sug.title);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${safeTitle} - Wireframe</title>
+<style>
+  :root{--bg:${tokens.background_color};--panel:${tokens.secondary_color};--text:${tokens.text_color};--muted:#9b96a6;--primary:${tokens.primary_color};--accent:${tokens.accent_color};--line:rgba(255,255,255,.12)}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;padding:24px}
+  .section{max-width:${tokens.container_width};margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:${tokens.border_radius};padding:24px;display:grid;grid-template-columns:1fr 1.05fr;gap:24px}
+  .media{min-height:360px;border-radius:8px;background:linear-gradient(135deg,#20202a,#111);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-family:"Space Grotesk",Inter,sans-serif;font-size:34px;line-height:1.08;margin:8px 0 8px}
+  .rating{color:#f5c85b;font-size:13px;margin-bottom:14px}.price{font-size:24px;font-weight:800;margin:8px 0 14px}
+  .deals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.deal{border:1px solid var(--line);border-radius:8px;padding:12px;background:#0c0b10}.deal.best{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+  .deal b{display:block;font-size:15px}.deal span{color:var(--muted);font-size:12px}.bump{border:1px dashed var(--accent);border-radius:8px;padding:12px;margin:12px 0;color:#f3ccd3;background:rgba(209,74,97,.08)}
+  button{width:100%;border:0;border-radius:${tokens.button_radius};padding:15px;background:linear-gradient(90deg,var(--primary),#b27aff);font-weight:800;font-size:15px;color:#09090c}
+  .trust{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.trust div{border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--muted);font-size:12px;text-align:center}
+  @media(max-width:700px){body{padding:14px}.section{grid-template-columns:1fr;padding:16px}.media{min-height:220px}h1{font-size:26px}.deals,.trust{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <section class="section" data-section-type="${escapeHtml(sug.sectionType)}">
+    <div class="media">Product visual / gallery context</div>
+    <div>
+      <div class="eyebrow">${escapeHtml(brand)} - improved section</div>
+      <h1>${safeTitle}</h1>
+      <div class="rating">★★★★★ 4.8 rating summary</div>
+      <div class="price">Price shown here</div>
+      <div class="deals">
+        <div class="deal"><b>Buy 1</b><span>Single product</span></div>
+        <div class="deal best"><b>Buy 2</b><span>Best starter value</span></div>
+        <div class="deal"><b>Buy 3</b><span>Family pack</span></div>
+        <div class="deal"><b>Buy 5</b><span>Stock-up deal</span></div>
+      </div>
+      <div class="bump">Add a complementary product and unlock the next reward tier.</div>
+      <button>Add selected bundle to cart</button>
+      <div class="trust"><div>Free shipping threshold</div><div>Easy returns</div><div>Secure checkout</div></div>
+    </div>
+  </section>
+</body>
+</html>`;
+}
+
+function downloadWireframeHtml(sug){
+  const blob = new Blob([state.modal?.html || generateWireframeHtml(sug)], { type:'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${sug.id}-${slugify(sug.title)}.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+}
+
+async function copyDeveloperPrompt(sug){
+  await navigator.clipboard.writeText(JSON.stringify({
+    suggestion: sug,
+    brand_tokens: brandTokens(),
+    task: 'Generate only the improved affected section. Preserve the existing site header, navigation, footer, product gallery, reviews, and recommendation carousel. Return production-ready responsive HTML/CSS for desktop and mobile.'
+  }, null, 2));
+  state.notice = 'Developer prompt copied.';
+  render();
+}
+
+function slugify(value){return value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 
 function downloadPdf(){
   const node = document.getElementById('reportPrintArea');
@@ -412,6 +744,7 @@ function downloadPdf(){
   }).from(node).save();
 }
 
+loadSharedReport();
 render();
 </script>
 </body>
