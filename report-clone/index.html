@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — Report Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-clone-build" content="2026-07-11T01:28:00Z" />
+<meta name="troo-aov-clone-build" content="2026-07-11T02:08:00Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -34,7 +34,7 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:760px){.grid2{grid-template-columns:1fr}}
   .runbtn{width:100%;margin-top:26px;border:0;border-radius:8px;background:linear-gradient(90deg,var(--purple),#b27aff);color:var(--ink);font:700 15px "Space Grotesk",sans-serif;padding:16px;cursor:pointer}
-  .runbtn:disabled{opacity:.62;cursor:progress}
+  .runbtn:disabled{opacity:.48;cursor:not-allowed}
   .secbtn{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:9px 13px;font:12.5px "JetBrains Mono",monospace;cursor:pointer}
   .secbtn:hover{border-color:var(--purple);color:var(--white)}
   .errbox,.okbox{margin-top:18px;padding:14px 16px;border-radius:8px;font-size:13.5px;line-height:1.5}
@@ -126,6 +126,7 @@ const state = {
 function el(tag, attrs, children){
   const node = document.createElement(tag);
   if(attrs) Object.entries(attrs).forEach(([k,v])=>{
+    if(v === null || v === undefined || v === false) return;
     if(k === 'class') node.className = v;
     else if(k.startsWith('on')) node.addEventListener(k.slice(2), v);
     else node.setAttribute(k, v);
@@ -157,14 +158,23 @@ function header(){
 function field(id, label, placeholder, required){
   const input = el('input',{id, type:'text', placeholder});
   input.value = state.inputs[id] || '';
-  input.addEventListener('input', e => state.inputs[id] = e.target.value.trim());
+  input.addEventListener('input', e => {
+    state.inputs[id] = e.target.value.trim();
+    updateSubmitState();
+  });
   return el('div',{},[
     el('label',{for:id},[label, required ? el('span',{class:'req'},' *') : null]),
     input
   ]);
 }
 
+function updateSubmitState(){
+  const btn = document.getElementById('submitReport');
+  if(btn) btn.disabled = !isReadyToSubmit();
+}
+
 function formView(){
+  const formValid = isReadyToSubmit();
   const card = el('section',{class:'card'},[
     field('brand','Brand name','e.g. Happi Planet',true),
     field('pdp','Product page (PDP) link - required','https://brand.com/products/...',true),
@@ -172,7 +182,7 @@ function formView(){
       field('home','Home page link - optional','https://brand.com',false),
       field('collection','Collection page link - optional','https://brand.com/collections/...',false)
     ]),
-    el('button',{class:'runbtn', onclick:runAnalysis},'Generate AOV strategy')
+    el('button',{id:'submitReport', class:'runbtn', onclick:runAnalysis, disabled: formValid ? null : 'disabled'},'Generate AOV strategy')
   ]);
   if(state.error) card.appendChild(el('div',{class:'errbox'},state.error));
   if(state.notice) card.appendChild(el('div',{class:'okbox'},state.notice));
@@ -193,6 +203,11 @@ function isUrl(value){
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
   }catch(e){ return false; }
+}
+
+function isReadyToSubmit(){
+  const inputs = state.inputs;
+  return Boolean(inputs.brand && isUrl(inputs.pdp) && (!inputs.home || isUrl(inputs.home)) && (!inputs.collection || isUrl(inputs.collection)));
 }
 
 function encodeSharePayload(){
@@ -338,11 +353,7 @@ function competitorSet(category){
       ['CaratLane','search-based','Collection-led discovery and high-trust purchase reassurance.']
     ]
   };
-  const rows = sets[category] || [
-    ['Category leader 1','search-based','Use bundle ladders, threshold incentives, and problem-led merchandising.'],
-    ['Category leader 2','search-based','Use add-ons and collection-first discovery to lift cart size.'],
-    ['Category leader 3','search-based','Use trust proof and offer architecture to reduce friction on larger carts.']
-  ];
+  const rows = sets[category] || [];
   return rows.map(([name, confidence, tactics])=>({name, confidence, tactics}));
 }
 
@@ -361,14 +372,13 @@ async function runAnalysis(){
     return;
   }
   state.view = 'loading';
-  const msgs = ['Reading PDP...', 'Reading optional pages...', 'Extracting price and offer signals...', 'Building AOV report...'];
+  const msgs = ['Fetching PDP...', 'Reading home page...', 'Reading collection page...', 'Extracting price, CTA and offer signals...', 'Researching 3 competitors...', 'Building AOV report...'];
   let i = 0;
   state.loadMsg = msgs[0];
   render();
   const timer = setInterval(()=>{ i=(i+1)%msgs.length; state.loadMsg = msgs[i]; render(); }, 1200);
   try{
     state.result = await callSupabaseReport(inputs);
-    localStorage.setItem('troo_aov_clone_last_report', JSON.stringify({ inputs, result: state.result, created_at: new Date().toISOString() }));
     state.view = 'report';
   }catch(err){
     state.error = err.message || 'Could not generate report.';
@@ -411,7 +421,7 @@ function statusLabel(status){return status === 'fetched' ? 'Fetched' : status ==
 
 function reportView(){
   const { report, access_status } = state.result;
-  const improvements = safeArray(report.improvements);
+  const improvements = ensureAovImprovements(safeArray(report.improvements), report);
   const topTests = normalizeTests(report.top_tests, improvements);
   const competitors = normalizeCompetitors(report.competitors);
   const frag = document.createDocumentFragment();
@@ -432,7 +442,7 @@ function reportView(){
     row.appendChild(el('div',{class:'pill'},[el('span',{class:'dot '+statusClass(item.status)}), `${key.toUpperCase()} - ${statusLabel(item.status)}${item.reason ? ' - '+item.reason : ''}`]));
   });
   print.appendChild(row);
-  print.appendChild(section('CRO diagnosis', el('div',{class:'diagBody'},report.diagnosis)));
+  print.appendChild(section('AOV diagnosis', el('div',{class:'diagBody'},aovDiagnosisText(report, improvements))));
   const imp = el('div',{});
   improvements.forEach((item,idx)=>{
     imp.appendChild(el('div',{class:'impCard'},[
@@ -444,7 +454,7 @@ function reportView(){
       el('div',{class:'impBody'},item.detail)
     ]));
   });
-  print.appendChild(section('Top AOV improvements', imp));
+  print.appendChild(section(`Top ${improvements.length} AOV improvements`, imp));
   print.appendChild(section('Suggestion cards', suggestionCards(report)));
   print.appendChild(section('Recommended above-the-fold structure', el('div',{class:'textBlock'},aboveFoldText(report, improvements))));
   const table = el('table',{},[el('tr',{},[el('th',{},'Priority'),el('th',{},'Test'),el('th',{},'Why')])]);
@@ -456,8 +466,8 @@ function reportView(){
     el('div',{class:'compName'},[c.name || c.brand || 'Competitor', el('span',{class:'confTag'},c.confidence || 'search-based')]),
     el('div',{class:'compBody'},c.tactics || c.summary || c.note || 'No tactic detail returned.')
   ])));
-  print.appendChild(section('Competitor AOV playbook', grid));
-  print.appendChild(el('div',{class:'footNote'},`Generated by TROO AOV INCREASE clone through Supabase. Report ID: ${state.result.report_id || 'not stored'}. Exact prices and page claims are only used when visible in the public read. Limited access is labelled in the status row.`));
+  print.appendChild(section('Competitor AOV playbook', competitors.length ? grid : el('div',{class:'textBlock'},'No competitor AOV mechanics were verified for this run. Per the PRD, the report does not pad this section with generic competitors.')));
+  print.appendChild(el('div',{class:'footNote'},`Generated by TROO AOV INCREASE through Supabase. Exact prices and page claims are only used when visible in the public read. Limited access is labelled in the status row. Share links encode the report in the URL for handoff; no report history UI is shown in this v1 clone.`));
   frag.appendChild(print);
   return frag;
 }
@@ -468,6 +478,103 @@ function safeArray(value){
   if(Array.isArray(value)) return value;
   if(value && typeof value === 'object') return Object.values(value).filter(item => item && typeof item === 'object');
   return [];
+}
+
+function aovDiagnosisText(report, improvements){
+  const value = String(report.diagnosis || '').trim();
+  if(value && /aov|average order|cart value|bundle|threshold|quantity|subscription|order bump|cart size|multi-item/i.test(value)) return value;
+  const first = improvements[0] || {};
+  const second = improvements[1] || {};
+  return `${state.inputs.brand} needs an AOV-specific read: the priority is to identify whether the PDP, collection, and home page create a clear next-cart step beyond one item. Based on the returned suggestions, start with "${first.mechanism || first.title || 'a higher-value purchase path'}" and "${second.mechanism || second.title || 'a threshold or bundle mechanic'}", then validate every price, discount, stock, and offer claim against the fetched page content before using it in the report.`;
+}
+
+function ensureAovImprovements(items, report){
+  const normalized = items.map((item, idx)=>coerceAovImprovement(item, idx)).filter(isAovMechanism);
+  const seen = new Set(normalized.map(item => canonicalMechanism(item.mechanism || item.title)));
+  fallbackAovMechanisms().forEach((item)=>{
+    if(normalized.length >= 20) return;
+    const key = canonicalMechanism(item.mechanism);
+    if(seen.has(key)) return;
+    normalized.push(item);
+    seen.add(key);
+  });
+  return normalized.slice(0, 20);
+}
+
+function coerceAovImprovement(item, idx){
+  const mechanism = item.mechanism || item.title || `AOV mechanism ${idx + 1}`;
+  const applies = normalizeAppliesTo(item.applies_to || item.pageType || item.page || 'pdp');
+  return {
+    ...item,
+    mechanism,
+    title: item.title || mechanism,
+    applies_to: applies,
+    detail: item.detail || item.recommendation || item.problem || 'Validate this AOV mechanism against the fetched page before using it.',
+    priority: item.priority || (idx < 5 ? 'High' : idx < 12 ? 'Medium' : 'Validation'),
+    effort: item.effort || effortFor({ mechanism, detail: item.detail || item.recommendation || '' })
+  };
+}
+
+function normalizeAppliesTo(value){
+  const text = String(value || '').toLowerCase();
+  if(text.includes('home')) return 'home';
+  if(text.includes('collection') || text.includes('plp')) return 'collection';
+  return 'pdp';
+}
+
+function isAovMechanism(item){
+  const title = `${item.mechanism || ''} ${item.title || ''}`;
+  const all = `${title} ${item.detail || ''} ${item.recommendation || ''}`;
+  const coreAov = /aov|average order|bundle|quantity break|quantity ladder|multi-buy|tiered pricing|threshold|gift tier|gift-with-purchase|subscription|refill|replenishment|stock-up|multi-pack|kit|routine builder|routine bundle|cross-sell|upsell|add-on|addon|order bump|cart drawer|cart value|cart size|offer architecture|best-value|value ladder|attach rate|multi-item/i;
+  const genericCROTitle = /breadcrumb|navigation|menu|photo|photography|gallery|image|specification|technical spec|stock availability|availability indicator|shipping information|delivery timeline|review aggregate|rating|faq|description|ingredient|benefit section/i;
+  if(genericCROTitle.test(title) && !coreAov.test(title)) return false;
+  return coreAov.test(all);
+}
+
+function canonicalMechanism(value){
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+
+function fallbackAovMechanisms(){
+  const items = [
+    {mechanism:'Quantity break ladder', applies_to:'pdp', detail:'Add a verified 1 / 2 / 3 unit buying ladder beside the primary CTA, with the higher-value option framed by real unit economics only after pricing is confirmed.'},
+    {mechanism:'Best-value bundle module', applies_to:'pdp', detail:'Create one complete-use-case bundle from products actually sold by the brand, positioned before long PDP content so shoppers see a larger cart path early.'},
+    {mechanism:'Cart threshold progress bar', applies_to:'pdp', detail:'Show the amount left to unlock a real free shipping, gift, or reward threshold. If the threshold is not verified, label it as a validation requirement.'},
+    {mechanism:'One-click order bump', applies_to:'pdp', detail:'Place a low-friction complementary add-on near the add-to-cart action so a committed shopper can raise cart value without leaving the PDP.'},
+    {mechanism:'Refill or stock-up pack', applies_to:'pdp', detail:'For repeat-use products, offer a 60-90 day pack or refill path with verified pack size and pricing only.'},
+    {mechanism:'Single vs bundle comparison table', applies_to:'pdp', detail:'Compare single item, bundle, and complete kit around use case, contents, and verified price/value so the higher AOV choice is easier to understand.'},
+    {mechanism:'Above-fold offer strip', applies_to:'pdp', detail:'Add a compact strip near price/CTA showing only verified offer mechanics, delivery reassurance, and the next best cart step.'},
+    {mechanism:'PDP add-on selector', applies_to:'pdp', detail:'Add a checkbox or tile for one relevant add-on below the main purchase box, using actual product copy and price only when present in the fetched read.'},
+    {mechanism:'Subscription or replenishment toggle', applies_to:'pdp', detail:'If the category is repeat-purchase, add one-time vs subscribe choice without hiding the one-time path.'},
+    {mechanism:'Gift-with-purchase tier', applies_to:'pdp', detail:'Use a gift or reward tier above the likely single-item cart value, but only after the merchant confirms the real reward and threshold.'},
+    {mechanism:'Bundle social proof placement', applies_to:'pdp', detail:'Move relevant proof near the bundle selector so the higher-value option has trust support at the decision point.'},
+    {mechanism:'Cart drawer cross-sell', applies_to:'pdp', detail:'After add-to-cart, show one complementary add-on and current progress toward the verified threshold reward.'},
+    {mechanism:'Checkout reassurance beside larger carts', applies_to:'pdp', detail:'Place returns, delivery, COD, guarantee, or payment reassurance next to higher-value choices to reduce hesitation as cart value rises.'},
+    {mechanism:'Variant-pack clarity', applies_to:'pdp', detail:'If variants or sizes exist, show pack size, per-use or per-unit value, and which option is best for repeat purchase.'},
+    {mechanism:'Post-CTA add-on module', applies_to:'pdp', detail:'Add one contextually relevant add-on after the main CTA so shoppers can increase cart size without interrupting primary purchase intent.'},
+    {mechanism:'Routine builder prompt', applies_to:'pdp', detail:'Ask shoppers to build a routine, kit, or use-case set from real products instead of buying a lone SKU.'},
+    {mechanism:'Pack-size value explanation', applies_to:'pdp', detail:'Explain larger pack value through verified unit count, use duration, or per-use framing when the page supports those facts.'},
+    {mechanism:'Higher-value default framing', applies_to:'pdp', detail:'Test preselecting the merchant-approved best-value option while keeping single purchase visible and reversible.'},
+    {mechanism:'Category competitor offer benchmark', applies_to:'pdp', detail:'Use verified competitor AOV mechanics to decide whether the brand should prioritize threshold, bundle, subscription, or cart add-on testing first.'}
+  ];
+  if(hasProvidedPage('collection')){
+    items.push(
+      {mechanism:'Bundle-first collection merchandising', applies_to:'collection', detail:'Pin bundles, kits, refills, or multi-packs above single SKUs in the collection path when those products exist.'},
+      {mechanism:'Collection card value badges', applies_to:'collection', detail:'Add verified value badges on product cards such as multi-pack, refill, kit, or subscription-ready, without inventing discount claims.'},
+      {mechanism:'Use-case collection grouping', applies_to:'collection', detail:'Group products by routine, problem, or occasion to encourage multi-item discovery rather than one-item browsing.'}
+    );
+  }
+  if(hasProvidedPage('home')){
+    items.push(
+      {mechanism:'Homepage best-value route', applies_to:'home', detail:'Add one home page module that routes shoppers into the highest-value routine, kit, or replenishment path rather than only single-product discovery.'},
+      {mechanism:'Homepage threshold education', applies_to:'home', detail:'Explain the verified threshold or value ladder before shoppers reach PDP, especially when home page traffic is high.'}
+    );
+  }
+  return items;
+}
+
+function hasProvidedPage(page){
+  return page === 'home' ? Boolean(state.inputs.home) : page === 'collection' ? Boolean(state.inputs.collection) : Boolean(state.inputs.pdp);
 }
 
 function normalizeTests(value, improvements=[]){
@@ -485,8 +592,8 @@ function normalizeTests(value, improvements=[]){
     };
     return null;
   }).filter(Boolean);
-  if(normalized.length) return normalized;
-  return improvements.slice(0, 3).map((item, idx)=>({
+  if(normalized.length) return normalized.slice(0, 5);
+  return improvements.slice(0, 5).map((item, idx)=>({
     priority: idx + 1,
     test: item.title || item.mechanism || `Suggestion ${idx + 1} validation`,
     why: item.reason || item.problem || 'Validate the recommendation against the rendered page before implementation.'
@@ -562,7 +669,7 @@ function suggestionCards(report){
       ]),
       evidencePreview(sug),
       el('div',{class:'suggestionActions'},[
-        el('button',{class:'secbtn', onclick:()=>openWireframe(sug)},'Generate Section'),
+        el('button',{class:'secbtn', onclick:()=>openWireframe(sug)},'Generate Wireframe'),
         el('button',{class:'secbtn', onclick:()=>copyDeveloperPrompt(sug)},'Copy Developer Prompt')
       ])
     ]));
@@ -590,7 +697,7 @@ function evidencePreview(sug){
 }
 
 function buildSuggestions(report){
-  return (report.improvements || []).slice(0, 8).map((item, idx)=>{
+  return ensureAovImprovements(safeArray(report.improvements), report).map((item, idx)=>{
     const backendReady = item.problem && item.recommendation && item.evidence && item.sectionType;
     const base = backendReady ? item : suggestionFromImprovement(item, idx);
     const evidence = normalizeEvidence(item.evidence, item, idx, report);
@@ -713,7 +820,7 @@ function evidenceFor(item, idx, report){
     evidenceId:`ev_${String(idx+1).padStart(3,'0')}`,
     status,
     requiresValidation:true,
-    observation:`The supplied page read supports an AOV/CRO review, but exact DOM position, screenshots, and commercial values require rendered-page validation before implementation.`,
+    observation:`The supplied page read supports an AOV strategy review, but exact DOM position, screenshots, and commercial values require rendered-page validation before implementation.`,
     source:{
       pageUrl: pageUrlFor(item.applies_to),
       text: report.diagnosis || item.detail || '',
@@ -1086,7 +1193,7 @@ function downloadWireframeHtml(sug){
 
 async function copyDeveloperPrompt(sug){
   const prompt = {
-    role: 'Senior ecommerce UI/CRO designer',
+    role: 'Senior ecommerce AOV strategy designer',
     task: 'Generate ONLY the improved affected section, not a full page. Match the submitted brand page visual system and use the current section context as the source of truth.',
     suggestion: sug,
     brand_tokens: brandTokens(),
@@ -1128,6 +1235,9 @@ function downloadPdf(){
 }
 
 loadSharedReport();
+window.addEventListener('hashchange', () => {
+  if(loadSharedReport()) render();
+});
 render();
 </script>
 </body>
