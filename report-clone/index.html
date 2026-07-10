@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>TROO AOV INCREASE — Report Clone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="troo-aov-clone-build" content="2026-07-10T17:35:00Z" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0d; --panel:#131217; --panel-2:#19171f; --line:rgba(255,255,255,0.09);
+    --white:#f4f2f6; --muted:#948f9e; --purple:#8a6cf5; --crimson:#d14a61;
+    --green:#4ec98e; --amber:#e0a84e; --ink:#0a0a0d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--white);font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:42px 20px 96px}
+  h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0}
+  .brandline{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .brandmark{width:10px;height:10px;background:var(--crimson);border-radius:2px;box-shadow:0 0 12px rgba(209,74,97,.7)}
+  .brandline span{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+  .title{font-size:36px;font-weight:700;line-height:1.08}
+  .title em{font-style:normal;color:var(--purple)}
+  .subtitle{color:var(--muted);font-size:15px;line-height:1.55;margin-top:12px;max-width:720px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:26px;margin-top:28px}
+  label{display:block;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:18px 0 7px}
+  label:first-of-type{margin-top:0}
+  .req{color:var(--crimson)}
+  input{width:100%;background:#09090c;border:1px solid var(--line);border-radius:8px;color:var(--white);font:14px Inter,sans-serif;padding:13px 14px}
+  input:focus{outline:none;border-color:var(--purple)}
+  input::placeholder{color:#5d5967}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .runbtn{width:100%;margin-top:26px;border:0;border-radius:8px;background:linear-gradient(90deg,var(--purple),#b27aff);color:var(--ink);font:700 15px "Space Grotesk",sans-serif;padding:16px;cursor:pointer}
+  .runbtn:disabled{opacity:.62;cursor:progress}
+  .secbtn{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:9px 13px;font:12.5px "JetBrains Mono",monospace;cursor:pointer}
+  .secbtn:hover{border-color:var(--purple);color:var(--white)}
+  .errbox,.okbox{margin-top:18px;padding:14px 16px;border-radius:8px;font-size:13.5px;line-height:1.5}
+  .errbox{background:rgba(209,74,97,.1);border:1px solid rgba(209,74,97,.35);color:#f0aab6}
+  .okbox{background:rgba(78,201,142,.1);border:1px solid rgba(78,201,142,.3);color:#a9ecc9}
+  .loadwrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:56px 20px}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(138,108,245,.22);border-top-color:var(--purple);animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loadmsg{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:12.5px;letter-spacing:.05em}
+  .reportHead{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+  .statusrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .pill{display:flex;align-items:center;gap:7px;font-family:"JetBrains Mono",monospace;font-size:11.5px;padding:7px 11px;border-radius:20px;border:1px solid var(--line);background:var(--panel-2)}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .partial{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+  .fail{background:var(--crimson);box-shadow:0 0 6px var(--crimson)}
+  .sectionTitle{font:12px "JetBrains Mono",monospace;color:var(--purple);letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .sectionTitle::after{content:"";flex:1;height:1px;background:var(--line)}
+  .diagBody,.textBlock{color:#d7d4de;font-size:14.5px;line-height:1.7;white-space:pre-wrap}
+  .impCard,.compCard{border:1px solid var(--line);border-radius:8px;background:var(--panel-2);padding:16px;margin-bottom:12px}
+  .impHead{display:flex;gap:12px;align-items:flex-start}
+  .impNum{width:28px;flex:none;font:700 14px "Space Grotesk",sans-serif;color:var(--crimson)}
+  .impTitle{font:600 15px "Space Grotesk",sans-serif;color:var(--white)}
+  .impTag{margin-left:auto;font:10px "JetBrains Mono",monospace;text-transform:uppercase;background:rgba(138,108,245,.14);color:var(--purple);border-radius:12px;padding:4px 9px;white-space:nowrap}
+  .impBody{color:var(--muted);font-size:13.5px;line-height:1.6;margin-top:8px;padding-left:40px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font:10.5px "JetBrains Mono",monospace;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line);padding:9px 10px}
+  td{border-bottom:1px solid var(--line);padding:12px 10px;font-size:13.5px;color:#e7e5ec;vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .prio{font-weight:700;color:var(--purple)}
+  .compGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:860px){.compGrid{grid-template-columns:1fr}}
+  .compName{font:600 14.5px "Space Grotesk",sans-serif;margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
+  .confTag{font:9px "JetBrains Mono",monospace;color:var(--amber);background:rgba(224,168,78,.14);border-radius:10px;padding:3px 7px;white-space:nowrap}
+  .compBody{color:var(--muted);font-size:13px;line-height:1.6}
+  .footNote{margin-top:32px;padding-top:18px;border-top:1px solid var(--line);color:#5a5763;font:11.5px "JetBrains Mono",monospace;line-height:1.7}
+  @media print{.noprint{display:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script>
+const state = {
+  view: 'form',
+  error: '',
+  notice: '',
+  loadMsg: '',
+  inputs: { brand:'', pdp:'', home:'', collection:'' },
+  result: null
+};
+
+function el(tag, attrs, children){
+  const node = document.createElement(tag);
+  if(attrs) Object.entries(attrs).forEach(([k,v])=>{
+    if(k === 'class') node.className = v;
+    else if(k.startsWith('on')) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  });
+  (Array.isArray(children)?children:[children]).filter(v=>v!==undefined&&v!==null).forEach(child=>{
+    node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+  });
+  return node;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  app.appendChild(header());
+  if(state.view === 'form') app.appendChild(formView());
+  if(state.view === 'loading') app.appendChild(loadingView());
+  if(state.view === 'report') app.appendChild(reportView());
+}
+
+function header(){
+  return el('section', {}, [
+    el('div',{class:'brandline'},[el('div',{class:'brandmark'}), el('span',{},'Troopod internal tool')]),
+    el('h1',{class:'title'},['TROO AOV ', el('em',{},'INCREASE')]),
+    el('p',{class:'subtitle'},'Paste a PDP, home page and collection page. This clone reads public page text, diagnoses AOV friction, and generates a structured report immediately.')
+  ]);
+}
+
+function field(id, label, placeholder, required){
+  const input = el('input',{id, type:'text', placeholder});
+  input.value = state.inputs[id] || '';
+  input.addEventListener('input', e => state.inputs[id] = e.target.value.trim());
+  return el('div',{},[
+    el('label',{for:id},[label, required ? el('span',{class:'req'},' *') : null]),
+    input
+  ]);
+}
+
+function formView(){
+  const card = el('section',{class:'card'},[
+    field('brand','Brand name','e.g. Happi Planet',true),
+    field('pdp','Product page (PDP) link - required','https://brand.com/products/...',true),
+    el('div',{class:'grid2'},[
+      field('home','Home page link - optional','https://brand.com',false),
+      field('collection','Collection page link - optional','https://brand.com/collections/...',false)
+    ]),
+    el('button',{class:'runbtn', onclick:runAnalysis},'Generate AOV strategy')
+  ]);
+  if(state.error) card.appendChild(el('div',{class:'errbox'},state.error));
+  if(state.notice) card.appendChild(el('div',{class:'okbox'},state.notice));
+  return card;
+}
+
+function loadingView(){
+  return el('section',{class:'card'},[
+    el('div',{class:'loadwrap'},[
+      el('div',{class:'spinner'}),
+      el('div',{class:'loadmsg'}, state.loadMsg || 'Reading pages...')
+    ])
+  ]);
+}
+
+function isUrl(value){
+  try{
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  }catch(e){ return false; }
+}
+
+function readerUrl(url){
+  return 'https://r.jina.ai/http://r.jina.ai/http://' + encodeURIComponent(url).replace(/^https%3A%2F%2F/i,'https://').replace(/^http%3A%2F%2F/i,'http://');
+}
+
+async function readPage(name, url){
+  if(!url) return { name, status:'not_provided', url:'', title:'', text:'', reason:'not provided' };
+  try{
+    const res = await fetch(readerUrl(url), { cache:'no-store' });
+    if(!res.ok) throw new Error('reader returned ' + res.status);
+    const text = (await res.text()).replace(/\n{3,}/g,'\n\n').trim();
+    const title = (text.match(/^Title:\s*(.+)$/m) || [,'Untitled page'])[1].trim();
+    const body = text.slice(0, 18000);
+    const status = body.length > 600 ? 'fetched' : 'partial';
+    return { name, status, url, title, text: body, reason: status === 'partial' ? 'limited public text was available' : '' };
+  }catch(err){
+    return { name, status:'partial', url, title: domainName(url), text: url, reason:'live reader was limited, report generated from URL/category signals' };
+  }
+}
+
+function domainName(url){
+  try{return new URL(url).hostname.replace(/^www\./,'')}catch(e){return 'brand page'}
+}
+
+function extractSignals(pages){
+  const text = pages.map(p=>p.text).join(' ').toLowerCase();
+  const raw = pages.map(p=>p.text).join(' ');
+  const prices = [...new Set((raw.match(/(?:₹|rs\.?|inr|\$)\s?[\d,]+(?:\.\d{1,2})?/gi) || []).slice(0,12))];
+  const ctas = ['add to cart','buy now','subscribe','checkout','bundle','save','free shipping','offer','discount','combo','kit','pack','refill','quantity','best seller'].filter(w=>text.includes(w));
+  const category = inferCategory(text + ' ' + pages.map(p=>p.url).join(' '));
+  return { text, raw, prices, ctas, category };
+}
+
+function inferCategory(text){
+  if(/kitchen-cleaner|foaming-formulation|less-scrubbing|dish-clean|home-clean|floor-clean|toilet-clean|bathroom-clean/.test(text)) return 'home cleaning';
+  if(/niacinamide|sunscreen|retinol|serum|moisturizer|shampoo|makeup/.test(text)) return 'beauty and personal care';
+  const checks = [
+    ['beauty and personal care', /niacinamide|sunscreen|retinol|serum|moisturizer|shampoo|makeup/],
+    ['home cleaning', /kitchen-cleaner|foaming-formulation|less-scrubbing|home-clean|dish|laundry|floor|toilet|bathroom|scrub/],
+    ['beauty and personal care', /skin|hair|beauty|face|\bcleanser\b|moistur/],
+    ['nutrition and wellness', /protein|supplement|vitamin|nutrition|wellness|health/],
+    ['jewellery and accessories', /ring|necklace|gold|silver|diamond|jewel|bracelet/],
+    ['fashion and apparel', /shirt|dress|wear|apparel|shoe|sneaker|denim/],
+    ['consumer electronics', /earbuds|speaker|charger|phone|watch|electronic/]
+  ];
+  return (checks.find(([,rx])=>rx.test(text)) || ['D2C product'])[0];
+}
+
+function makeReport(inputs, pages){
+  const signals = extractSignals(pages);
+  const missing = pages.filter(p=>p.status !== 'fetched' && p.status !== 'not_provided').map(p=>p.name.toUpperCase());
+  const priceLine = signals.prices.length ? `Visible price signals found: ${signals.prices.join(', ')}.` : 'No reliable visible price was captured in the public read.';
+  const ctaLine = signals.ctas.length ? `Detected mechanics or CTA words: ${signals.ctas.join(', ')}.` : 'No strong bundle, subscription, quantity-break, or threshold mechanics were clearly detected.';
+  const scopeLine = missing.length ? `Limited read on ${missing.join(', ')}; recommendations below avoid inventing exact page copy.` : 'All provided public pages returned enough text for a grounded first-pass read.';
+  const improvements = [
+    ['Quantity break ladder','pdp','Add a 1 / 2 / 3 unit selector with a clearly marked best-value choice. This is the fastest AOV lever when the PDP currently behaves like a single-unit checkout.'],
+    ['Starter bundle','pdp','Create a default bundle that solves one complete use case instead of one SKU. Put the bundle above long descriptions and make the savings visible.'],
+    ['Progress bar threshold','pdp','Use a free shipping or free gift threshold slightly above current single-item value so the next cart step feels obvious.'],
+    ['Order bump','pdp','Add a small complementary add-on directly near the CTA. Keep it one-click and low-friction.'],
+    ['Refill or replenishment pack','pdp','For repeat-use categories, show a refill pack or 60-90 day stock-up option with a lower per-use price.'],
+    ['Benefit-led comparison','pdp','Compare single item vs bundle vs complete kit in one compact table so shoppers can self-select higher value.'],
+    ['Above-fold offer strip','pdp','Add a tight offer strip near price/CTA: bundle saving, threshold reward, delivery promise, and return assurance.'],
+    ['Collection sort by bundles','collection','Pin bundles, kits, and best-value packs in the first row instead of letting single SKUs dominate discovery.'],
+    ['Home page offer module','home','Add one module that explains the best-value routine/kit and links directly to bundled PDPs.'],
+    ['Cart drawer cross-sell','pdp','After add-to-cart, show one relevant add-on and the exact amount left to unlock the threshold reward.'],
+    ['Subscription prompt','pdp','If replenishment is natural, add subscribe-and-save as a secondary choice without hiding one-time purchase.'],
+    ['Use-case bundles','collection','Group products by problem or occasion rather than only category. This raises multi-item attach rate.'],
+    ['Gift-with-purchase tier','pdp','Introduce a gift tier above the likely single-item cart value to pull orders upward without permanent discounting.'],
+    ['Social proof near bundle','pdp','Move reviews or proof points close to the bundle selector so the higher-value option carries trust.'],
+    ['Checkout reassurance','pdp','Place delivery, COD/returns, and guarantee reassurance directly beside the CTA to reduce hesitation on larger carts.']
+  ].map(([mechanism, applies_to, detail])=>({mechanism, applies_to, detail}));
+  return {
+    access_status: Object.fromEntries(pages.map(p=>[p.name,{status:p.status, reason:p.reason, title:p.title, url:p.url}])),
+    report: {
+      diagnosis: `${inputs.brand} appears to be operating in ${signals.category}. ${priceLine} ${ctaLine} The current AOV risk is that the shopper is not being given a strong next-cart-step: bundle, threshold reward, add-on, or replenishment path. ${scopeLine}`,
+      improvements,
+      above_fold_structure: 'Recommended PDP first screen: product title and trust proof, visible price or price range, compact benefit bullets, variant/quantity selector, bundle or best-value selector, primary CTA, threshold reward bar, delivery/return reassurance, and one add-on prompt after CTA.',
+      top_tests: [
+        {priority:1,test:'Default best-value bundle vs single SKU default',why:'Directly tests whether shoppers will accept a higher cart value when the higher-value option is framed as the normal buying path.'},
+        {priority:2,test:'Free shipping or gift threshold above single-item cart',why:'Threshold mechanics create a clear reason to add one more item without discounting everything.'},
+        {priority:3,test:'Cart drawer add-on after add-to-cart',why:'Captures intent after the shopper has already committed to buying.'},
+        {priority:4,test:'Collection page bundle-first merchandising',why:'Prevents discovery journeys from starting with the lowest cart value SKU.'},
+        {priority:5,test:'Subscription or refill pack module',why:'Works especially well when the product is repeat-use and can shift one-time buyers into larger planned purchases.'}
+      ],
+      offer_architecture: `Base: keep the single SKU available. Better: 2-pack or routine bundle with visible value. Best: complete kit or stock-up pack with strongest savings/reward. Add a threshold reward above the single-item price and an order bump below impulse-pain price. Use exact prices only after they are confirmed from the page or merch sheet.`,
+      competitors: competitorSet(signals.category)
+    }
+  };
+}
+
+function competitorSet(category){
+  const sets = {
+    'home cleaning': [
+      ['The Better Home','search-based','Uses category bundles, refill logic, and eco-safe positioning to increase multi-product carts.'],
+      ['Beco','search-based','Often frames value around family packs, subscriptions, and household routines.'],
+      ['Born Good','search-based','Uses bundles and problem-led cleaning sets that can lift cart size beyond a single cleaner.']
+    ],
+    'beauty and personal care': [
+      ['Plum','search-based','Strong routine bundles, minis, threshold gifts, and cart add-ons.'],
+      ['Minimalist','search-based','Regimen-led cross-sell and concern-based product pairing.'],
+      ['mCaffeine','search-based','Bundles, BOGO-style moments, and gift thresholds.']
+    ],
+    'nutrition and wellness': [
+      ['HealthKart','search-based','Bulk packs, stack bundles, subscription prompts, and cart threshold rewards.'],
+      ['Wellbeing Nutrition','search-based','Regimen packs and benefit-led kits.'],
+      ['Oziva','search-based','Goal-based bundles and replenishment positioning.']
+    ],
+    'jewellery and accessories': [
+      ['Mia by Tanishq','search-based','Occasion-led edits and gifting paths that raise basket intent.'],
+      ['Giva','search-based','Gift bundles, add-on packaging, and occasion merchandising.'],
+      ['CaratLane','search-based','Collection-led discovery and high-trust purchase reassurance.']
+    ]
+  };
+  const rows = sets[category] || [
+    ['Category leader 1','search-based','Use bundle ladders, threshold incentives, and problem-led merchandising.'],
+    ['Category leader 2','search-based','Use add-ons and collection-first discovery to lift cart size.'],
+    ['Category leader 3','search-based','Use trust proof and offer architecture to reduce friction on larger carts.']
+  ];
+  return rows.map(([name, confidence, tactics])=>({name, confidence, tactics}));
+}
+
+async function runAnalysis(){
+  const inputs = {...state.inputs};
+  state.error = '';
+  state.notice = '';
+  if(!inputs.brand || !inputs.pdp){
+    state.error = 'Brand name and PDP link are both required.';
+    render();
+    return;
+  }
+  if(!isUrl(inputs.pdp) || (inputs.home && !isUrl(inputs.home)) || (inputs.collection && !isUrl(inputs.collection))){
+    state.error = 'Use full http:// or https:// links.';
+    render();
+    return;
+  }
+  state.view = 'loading';
+  const msgs = ['Reading PDP...', 'Reading optional pages...', 'Extracting price and offer signals...', 'Building AOV report...'];
+  let i = 0;
+  state.loadMsg = msgs[0];
+  render();
+  const timer = setInterval(()=>{ i=(i+1)%msgs.length; state.loadMsg = msgs[i]; render(); }, 1200);
+  try{
+    const pages = await Promise.all([
+      readPage('pdp', inputs.pdp),
+      readPage('home', inputs.home),
+      readPage('collection', inputs.collection)
+    ]);
+    state.result = makeReport(inputs, pages);
+    localStorage.setItem('troo_aov_clone_last_report', JSON.stringify({ inputs, result: state.result, created_at: new Date().toISOString() }));
+    state.view = 'report';
+  }catch(err){
+    state.error = err.message || 'Could not generate report.';
+    state.view = 'form';
+  }finally{
+    clearInterval(timer);
+    render();
+  }
+}
+
+function statusClass(status){return status === 'fetched' ? 'ok' : status === 'partial' ? 'partial' : 'fail'}
+function statusLabel(status){return status === 'fetched' ? 'Fetched' : status === 'partial' ? 'Partial read' : status === 'not_provided' ? 'Not provided' : 'Could not access'}
+
+function reportView(){
+  const { report, access_status } = state.result;
+  const frag = document.createDocumentFragment();
+  frag.appendChild(el('div',{class:'reportHead noprint'},[
+    el('h2',{},`${state.inputs.brand} - AOV Strategy`),
+    el('div',{class:'btnrow'},[
+      el('button',{class:'secbtn', onclick:copyReport},'Copy report'),
+      el('button',{class:'secbtn', onclick:downloadPdf},'Download PDF'),
+      el('button',{class:'secbtn', onclick:()=>{state.view='form'; render();}},'New analysis')
+    ])
+  ]));
+  if(state.notice) frag.appendChild(el('div',{class:'okbox noprint'},state.notice));
+  const print = el('section',{id:'reportPrintArea'});
+  print.appendChild(el('h2',{class:'title'},`${state.inputs.brand} AOV Strategy`));
+  const row = el('div',{class:'statusrow'});
+  Object.entries(access_status).forEach(([key,item])=>{
+    row.appendChild(el('div',{class:'pill'},[el('span',{class:'dot '+statusClass(item.status)}), `${key.toUpperCase()} - ${statusLabel(item.status)}${item.reason ? ' - '+item.reason : ''}`]));
+  });
+  print.appendChild(row);
+  print.appendChild(section('CRO diagnosis', el('div',{class:'diagBody'},report.diagnosis)));
+  const imp = el('div',{});
+  report.improvements.forEach((item,idx)=>{
+    imp.appendChild(el('div',{class:'impCard'},[
+      el('div',{class:'impHead'},[
+        el('div',{class:'impNum'},String(idx+1).padStart(2,'0')),
+        el('div',{class:'impTitle'},item.mechanism),
+        el('div',{class:'impTag'},item.applies_to)
+      ]),
+      el('div',{class:'impBody'},item.detail)
+    ]));
+  });
+  print.appendChild(section('Top AOV improvements', imp));
+  print.appendChild(section('Recommended above-the-fold structure', el('div',{class:'textBlock'},report.above_fold_structure)));
+  const table = el('table',{},[el('tr',{},[el('th',{},'Priority'),el('th',{},'Test'),el('th',{},'Why')])]);
+  report.top_tests.forEach(t=>table.appendChild(el('tr',{},[el('td',{class:'prio'},String(t.priority)),el('td',{},t.test),el('td',{},t.why)])));
+  print.appendChild(section('Top tests to run first', table));
+  print.appendChild(section('Ideal offer architecture', el('div',{class:'textBlock'},report.offer_architecture)));
+  const grid = el('div',{class:'compGrid'});
+  report.competitors.forEach(c=>grid.appendChild(el('div',{class:'compCard'},[
+    el('div',{class:'compName'},[c.name, el('span',{class:'confTag'},c.confidence)]),
+    el('div',{class:'compBody'},c.tactics)
+  ])));
+  print.appendChild(section('Competitor AOV playbook', grid));
+  print.appendChild(el('div',{class:'footNote'},'Generated by TROO AOV INCREASE clone. Exact prices and page claims are only used when visible in the public read. Limited access is labelled in the status row.'));
+  frag.appendChild(print);
+  return frag;
+}
+
+function section(title, body){return el('section',{class:'card'},[el('div',{class:'sectionTitle'},title),body])}
+
+async function copyReport(){
+  await navigator.clipboard.writeText(document.getElementById('reportPrintArea').innerText);
+  state.notice = 'Report copied.';
+  render();
+}
+
+function downloadPdf(){
+  const node = document.getElementById('reportPrintArea');
+  if(!window.html2pdf){ window.print(); return; }
+  const brand = (state.inputs.brand || 'brand').toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  window.html2pdf().set({
+    margin:10,
+    filename:`troo-aov-strategy-${brand}.pdf`,
+    image:{type:'jpeg',quality:.98},
+    html2canvas:{scale:2,backgroundColor:'#0a0a0d'},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(node).save();
+}
+
+render();
+</script>
+</body>
+</html>
