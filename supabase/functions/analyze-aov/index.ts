@@ -206,6 +206,7 @@ async function fetchPage(url: string): Promise<PageResult> {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ url }),
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         }),
         FETCH_TIMEOUT_MS,
       );
@@ -228,6 +229,7 @@ async function fetchPage(url: string): Promise<PageResult> {
           "user-agent":
             "Mozilla/5.0 (compatible; TroopodAOVBot/1.0; +internal-tool)",
         },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       }),
       FETCH_TIMEOUT_MS,
     );
@@ -298,9 +300,16 @@ async function tryFetch<T>(
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ms);
-  return promise.finally(() => clearTimeout(timeout));
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new DOMException("Request timed out", "TimeoutError")),
+      ms,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
 }
 
 function isValidUrlShape(url: string): boolean {

@@ -23,7 +23,7 @@
   .title{font-size:34px;font-weight:700;letter-spacing:-0.01em;line-height:1.1;}
   .title em{font-style:normal;color:var(--purple);}
   .subtitle{color:var(--muted);font-size:15px;margin-top:10px;max-width:600px;line-height:1.5;}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;margin-top:28px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:26px;margin-top:28px;}
   label{display:block;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:7px;margin-top:18px;}
   label:first-of-type{margin-top:0;}
   label .req{color:var(--crimson);}
@@ -32,12 +32,13 @@
   input[type=text]::placeholder{color:#5a5763;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media(max-width:640px){.grid2{grid-template-columns:1fr;}}
-  .runbtn{margin-top:26px;width:100%;padding:15px;border-radius:9px;border:none;background:linear-gradient(90deg,var(--purple),#a97cf2);color:#0a0a0d;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;cursor:pointer;}
+  .runbtn{margin-top:26px;width:100%;padding:15px;border-radius:8px;border:none;background:linear-gradient(90deg,var(--purple),#a97cf2);color:#0a0a0d;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;cursor:pointer;}
   .runbtn:disabled{opacity:0.5;cursor:not-allowed;}
   .runbtn:not(:disabled):hover{filter:brightness(1.08);}
   .secbtn{background:transparent;border:1px solid var(--line);color:var(--muted);padding:9px 14px;border-radius:7px;font-size:12.5px;font-family:'JetBrains Mono',monospace;cursor:pointer;}
   .secbtn:hover{border-color:var(--purple);color:var(--white);}
   .errbox{margin-top:18px;padding:14px 16px;border-radius:8px;background:rgba(209,74,97,0.1);border:1px solid rgba(209,74,97,0.35);color:#f0aab6;font-size:13.5px;line-height:1.5;}
+  .okbox{margin-top:18px;padding:14px 16px;border-radius:8px;background:rgba(78,201,142,0.1);border:1px solid rgba(78,201,142,0.28);color:#a9ecc9;font-size:13.5px;line-height:1.5;}
   .configRow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
   .configNote{color:var(--muted);font-size:12px;line-height:1.6;margin-top:6px;}
   .loadwrap{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:18px;}
@@ -56,7 +57,7 @@
   .sectionTitle{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--purple);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;margin-top:0;display:flex;align-items:center;gap:10px;}
   .sectionTitle::after{content:"";flex:1;height:1px;background:var(--line);}
   .diagBody{color:#d7d4de;font-size:14.5px;line-height:1.7;}
-  .impCard{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:var(--panel-2);}
+  .impCard{border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-bottom:12px;background:var(--panel-2);}
   .impHead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
   .impNum{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--crimson);font-size:14px;flex:none;width:26px;}
   .impTitle{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;color:var(--white);}
@@ -70,7 +71,7 @@
   .textBlock{color:#d7d4de;font-size:14px;line-height:1.7;white-space:pre-wrap;}
   .compGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
   @media(max-width:760px){.compGrid{grid-template-columns:1fr;}}
-  .compCard{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel-2);}
+  .compCard{border:1px solid var(--line);border-radius:8px;padding:16px;background:var(--panel-2);}
   .compName{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:6px;color:var(--white);display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
   .confTag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:10px;white-space:nowrap;}
   .confTag.direct{background:rgba(78,201,142,0.14);color:var(--green);}
@@ -85,13 +86,28 @@
 <div class="wrap" id="app"></div>
 
 <script>
+const TROO_AOV_CONFIG = window.TROO_AOV_CONFIG || {
+  supabaseUrl: '',
+  supabaseAnonKey: '',
+  functionName: 'analyze-aov'
+};
+
+function configuredFunctionUrl(){
+  if(TROO_AOV_CONFIG.functionUrl) return TROO_AOV_CONFIG.functionUrl;
+  if(TROO_AOV_CONFIG.supabaseUrl){
+    return TROO_AOV_CONFIG.supabaseUrl.replace(/\/+$/,'') + '/functions/v1/' + (TROO_AOV_CONFIG.functionName || 'analyze-aov');
+  }
+  return '';
+}
+
 const APP_STATE = {
   view: 'form',
   error: null,
+  notice: null,
   report: null,
   reportMeta: null,
   inputs: { pdp:'', home:'', collection:'', brand:'' },
-  backendUrl: localStorage.getItem('troo_aov_backend_url') || ''
+  backendUrl: localStorage.getItem('troo_aov_backend_url') || configuredFunctionUrl()
 };
 
 function h(tag, attrs, children){
@@ -123,7 +139,7 @@ function header(){
   return h('div',{},[
     h('div',{class:'brandline'},[h('div',{class:'brandmark'}), h('span',{},'Troopod internal tool')]),
     h('div',{class:'title'},['TROO AOV ', h('em',{},'INCREASE')]),
-    h('div',{class:'subtitle'},'Paste a PDP, home page and collection page. The backend reads the live pages, diagnoses why AOV is capped, and returns a prioritized offer architecture — plus what 3 real competitors are doing differently.')
+    h('div',{class:'subtitle'},'Paste a PDP, home page and collection page. Supabase reads the live pages, stores the run status, and returns a prioritized offer architecture — plus what 3 real competitors are doing differently.')
   ]);
 }
 
@@ -138,17 +154,17 @@ function inputField(id, labelText, placeholder, required){
 function backendConfigCard(){
   const card = h('div',{class:'card'});
   const row = h('div',{class:'configRow'},[
-    h('label',{style:'margin:0;'},'Backend function URL'),
+    h('label',{style:'margin:0;'},'Supabase Edge Function URL'),
   ]);
   card.appendChild(row);
-  const inp = h('input',{type:'text', id:'backendUrl', placeholder:'https://YOUR-PROJECT.functions.supabase.co/analyze-aov'});
+  const inp = h('input',{type:'text', id:'backendUrl', placeholder:'https://YOUR-PROJECT.supabase.co/functions/v1/analyze-aov'});
   inp.value = APP_STATE.backendUrl;
   inp.addEventListener('input', e=>{
     APP_STATE.backendUrl = e.target.value.trim();
     localStorage.setItem('troo_aov_backend_url', APP_STATE.backendUrl);
   });
   card.appendChild(inp);
-  card.appendChild(h('div',{class:'configNote'},'This is your deployed Supabase edge function URL (see README — supabase functions deploy analyze-aov). The frontend never talks to Claude directly; it only calls this endpoint. Saved locally in this browser.'));
+  card.appendChild(h('div',{class:'configNote'},'This is the deployed Supabase function created from supabase/functions/analyze-aov. The page never talks to Claude directly; Supabase owns the fetch, report generation, and aov_reports logging. Saved locally in this browser.'));
   return card;
 }
 
@@ -165,6 +181,7 @@ function formView(){
   ]));
   card.appendChild(h('button',{class:'runbtn', onclick: runAnalysis},'Generate AOV strategy'));
   if(APP_STATE.error){ card.appendChild(h('div',{class:'errbox'}, APP_STATE.error)); }
+  if(APP_STATE.notice){ card.appendChild(h('div',{class:'okbox'}, APP_STATE.notice)); }
   wrap.appendChild(card);
   return wrap;
 }
@@ -194,10 +211,13 @@ function reportView(){
   frag.appendChild(h('div',{class:'reportHead noprint'},[
     h('h2',{},(APP_STATE.inputs.brand ? APP_STATE.inputs.brand + ' — ' : '') + 'AOV Strategy'),
     h('div',{class:'btnrow'},[
+      h('button',{class:'secbtn', onclick: copyReport},'Copy report'),
       h('button',{class:'secbtn', onclick: downloadPdf},'Download PDF'),
       h('button',{class:'secbtn', onclick:()=>{APP_STATE.view='form'; APP_STATE.report=null; render();}},'← New analysis')
     ])
   ]));
+  if(APP_STATE.notice) frag.appendChild(h('div',{class:'okbox noprint'}, APP_STATE.notice));
+  if(APP_STATE.error) frag.appendChild(h('div',{class:'errbox noprint'}, APP_STATE.error));
 
   const printArea = h('div',{id:'reportPrintArea'});
 
@@ -309,6 +329,20 @@ function downloadPdf(){
   window.html2pdf().set(opt).from(el).save();
 }
 
+async function copyReport(){
+  const reportText = document.getElementById('reportPrintArea')?.innerText || '';
+  if(!reportText.trim()) return;
+  APP_STATE.error = null;
+  try{
+    await navigator.clipboard.writeText(reportText);
+    APP_STATE.notice = 'Report copied to clipboard.';
+    render();
+  }catch(e){
+    APP_STATE.error = 'Could not copy automatically. Select the report text and copy it manually.';
+    render();
+  }
+}
+
 // ---------- JSON repair (defends against malformed/truncated model output reaching the frontend) ----------
 function computeCloser(s){
   let stack = [], inStr = false, esc = false;
@@ -349,9 +383,14 @@ function repairAndParseJSON(raw){
 }
 
 async function callBackend(payload){
+  const headers = { 'Content-Type': 'application/json' };
+  if(TROO_AOV_CONFIG.supabaseAnonKey){
+    headers.apikey = TROO_AOV_CONFIG.supabaseAnonKey;
+    headers.Authorization = 'Bearer ' + TROO_AOV_CONFIG.supabaseAnonKey;
+  }
   const res = await fetch(APP_STATE.backendUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload)
   });
   let data;
@@ -379,7 +418,7 @@ async function callBackend(payload){
 async function runAnalysis(){
   const inputs = APP_STATE.inputs;
   if(!APP_STATE.backendUrl){
-    APP_STATE.error = 'Set the backend function URL above first (deploy the Supabase function, then paste its URL here).';
+    APP_STATE.error = 'Set the Supabase Edge Function URL above first, then generate the report.';
     render();
     return;
   }
@@ -388,7 +427,13 @@ async function runAnalysis(){
     render();
     return;
   }
+  if(!isValidHttpUrl(inputs.pdp) || (inputs.home && !isValidHttpUrl(inputs.home)) || (inputs.collection && !isValidHttpUrl(inputs.collection))){
+    APP_STATE.error = 'That does not look like a valid link. Use a full http:// or https:// URL.';
+    render();
+    return;
+  }
   APP_STATE.error = null;
+  APP_STATE.notice = null;
   APP_STATE.view = 'loading';
   const msgs = ['Fetching the PDP...','Fetching home / collection...','Reading page content...','Researching competitors...','Building the report...'];
   let mi = 0;
@@ -416,6 +461,15 @@ async function runAnalysis(){
     APP_STATE.view = 'form';
     APP_STATE.error = err.message || 'Something went wrong generating the report. Try again.';
     render();
+  }
+}
+
+function isValidHttpUrl(value){
+  try{
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  }catch(e){
+    return false;
   }
 }
 

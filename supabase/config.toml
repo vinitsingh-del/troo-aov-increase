@@ -1,0 +1,4 @@
+project_id = "troo-aov-increase"
+
+[functions.analyze-aov]
+verify_jwt = false

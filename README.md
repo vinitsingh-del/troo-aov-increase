@@ -15,6 +15,9 @@ the full spec.
   Pages cannot execute server functions.
 - **Database** — `supabase/migrations/0001_troo_aov_schema.sql`, one table
   (`aov_reports`) that logs each run and its status.
+- **Supabase config** — `supabase/config.toml` exposes `analyze-aov` without JWT
+  verification so the GitHub Pages frontend can call it directly. The function itself
+  still uses the service role key server-side for database writes.
 
 ## 1. Deploy the backend (required before the page will actually generate anything)
 
@@ -28,7 +31,7 @@ supabase functions deploy analyze-aov
 ```
 
 This gives you a URL like:
-`https://<project-ref>.functions.supabase.co/analyze-aov`
+`https://<project-ref>.supabase.co/functions/v1/analyze-aov`
 
 ### RENDER_SERVICE_URL note
 
@@ -42,8 +45,8 @@ as a known v1 gap in the PRD, worth deciding on before relying on this for real 
 ## 2. Point the frontend at your backend
 
 Open the deployed GitHub Pages URL, paste your Supabase function URL into the
-**Backend function URL** field at the top. It's saved in that browser's local storage,
-so you only set it once per browser.
+**Supabase Edge Function URL** field at the top. It's saved in that browser's local
+storage, so you only set it once per browser.
 
 ## 3. Calling the backend directly (for testing without the UI)
 
