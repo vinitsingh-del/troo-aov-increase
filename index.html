@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>TROO AOV INCREASE — by Troopod</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0d; --panel:#131217; --panel-2:#19171f; --line:rgba(255,255,255,0.09);
+    --white:#f4f2f6; --muted:#948f9e; --purple:#8a6cf5; --purple-dim:#5d4b9e;
+    --crimson:#d14a61; --green:#4ec98e; --amber:#e0a84e;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 20px 100px;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;}
+  .brandline{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .brandmark{width:10px;height:10px;background:var(--crimson);border-radius:2px;box-shadow:0 0 12px rgba(209,74,97,0.7);}
+  .brandline span{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.14em;color:var(--muted);text-transform:uppercase;}
+  .title{font-size:34px;font-weight:700;letter-spacing:-0.01em;line-height:1.1;}
+  .title em{font-style:normal;color:var(--purple);}
+  .subtitle{color:var(--muted);font-size:15px;margin-top:10px;max-width:600px;line-height:1.5;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;margin-top:28px;}
+  label{display:block;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:7px;margin-top:18px;}
+  label:first-of-type{margin-top:0;}
+  label .req{color:var(--crimson);}
+  input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--white);border-radius:8px;padding:12px 14px;font-size:14px;font-family:'Inter',sans-serif;}
+  input[type=text]:focus{outline:none;border-color:var(--purple);}
+  input[type=text]::placeholder{color:#5a5763;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+  .runbtn{margin-top:26px;width:100%;padding:15px;border-radius:9px;border:none;background:linear-gradient(90deg,var(--purple),#a97cf2);color:#0a0a0d;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;cursor:pointer;}
+  .runbtn:disabled{opacity:0.5;cursor:not-allowed;}
+  .runbtn:not(:disabled):hover{filter:brightness(1.08);}
+  .secbtn{background:transparent;border:1px solid var(--line);color:var(--muted);padding:9px 14px;border-radius:7px;font-size:12.5px;font-family:'JetBrains Mono',monospace;cursor:pointer;}
+  .secbtn:hover{border-color:var(--purple);color:var(--white);}
+  .errbox{margin-top:18px;padding:14px 16px;border-radius:8px;background:rgba(209,74,97,0.1);border:1px solid rgba(209,74,97,0.35);color:#f0aab6;font-size:13.5px;line-height:1.5;}
+  .configRow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .configNote{color:var(--muted);font-size:12px;line-height:1.6;margin-top:6px;}
+  .loadwrap{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:18px;}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(138,108,245,0.2);border-top-color:var(--purple);animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loadmsg{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);letter-spacing:0.04em;}
+  .reportHead{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+  .statusrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .pill{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11.5px;padding:7px 11px;border-radius:20px;border:1px solid var(--line);background:var(--panel-2);}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .dot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
+  .dot.partial{background:var(--amber);box-shadow:0 0 6px var(--amber);}
+  .dot.fail{background:var(--crimson);box-shadow:0 0 6px var(--crimson);}
+  .reasonTxt{color:var(--muted);font-size:11px;}
+  .sectionTitle{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--purple);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;margin-top:0;display:flex;align-items:center;gap:10px;}
+  .sectionTitle::after{content:"";flex:1;height:1px;background:var(--line);}
+  .diagBody{color:#d7d4de;font-size:14.5px;line-height:1.7;}
+  .impCard{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:var(--panel-2);}
+  .impHead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+  .impNum{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--crimson);font-size:14px;flex:none;width:26px;}
+  .impTitle{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;color:var(--white);}
+  .impTag{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 9px;border-radius:12px;background:rgba(138,108,245,0.14);color:var(--purple);text-transform:uppercase;white-space:nowrap;}
+  .impBody{color:var(--muted);font-size:13.5px;line-height:1.6;margin-top:8px;padding-left:38px;}
+  table.testtable{width:100%;border-collapse:collapse;margin-top:6px;}
+  table.testtable th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;padding:8px 10px;border-bottom:1px solid var(--line);}
+  table.testtable td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13.5px;color:#e7e5ec;vertical-align:top;}
+  table.testtable tr:last-child td{border-bottom:none;}
+  .prio{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--purple);}
+  .textBlock{color:#d7d4de;font-size:14px;line-height:1.7;white-space:pre-wrap;}
+  .compGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:760px){.compGrid{grid-template-columns:1fr;}}
+  .compCard{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--panel-2);}
+  .compName{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:6px;color:var(--white);display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+  .confTag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;border-radius:10px;white-space:nowrap;}
+  .confTag.direct{background:rgba(78,201,142,0.14);color:var(--green);}
+  .confTag.search{background:rgba(224,168,78,0.14);color:var(--amber);}
+  .compBody{color:var(--muted);font-size:13px;line-height:1.6;}
+  .footNote{margin-top:32px;padding-top:18px;border-top:1px solid var(--line);color:#5a5763;font-size:11.5px;font-family:'JetBrains Mono',monospace;line-height:1.7;}
+  #reportPrintArea{background:var(--bg);}
+  @media print{ .noprint{display:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const APP_STATE = {
+  view: 'form',
+  error: null,
+  report: null,
+  reportMeta: null,
+  inputs: { pdp:'', home:'', collection:'', brand:'' },
+  backendUrl: localStorage.getItem('troo_aov_backend_url') || ''
+};
+
+function h(tag, attrs, children){
+  const el = document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    if(k === 'class') el.className = attrs[k];
+    else if(k === 'style') el.setAttribute('style', attrs[k]);
+    else if(k.startsWith('on')) el.addEventListener(k.slice(2), attrs[k]);
+    else el.setAttribute(k, attrs[k]);
+  }
+  if(children) (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c === null || c === undefined) return;
+    if(typeof c === 'string') el.appendChild(document.createTextNode(c));
+    else el.appendChild(c);
+  });
+  return el;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  app.appendChild(header());
+  if(APP_STATE.view === 'form') app.appendChild(formView());
+  if(APP_STATE.view === 'loading') app.appendChild(loadingView());
+  if(APP_STATE.view === 'report') app.appendChild(reportView());
+}
+
+function header(){
+  return h('div',{},[
+    h('div',{class:'brandline'},[h('div',{class:'brandmark'}), h('span',{},'Troopod internal tool')]),
+    h('div',{class:'title'},['TROO AOV ', h('em',{},'INCREASE')]),
+    h('div',{class:'subtitle'},'Paste a PDP, home page and collection page. The backend reads the live pages, diagnoses why AOV is capped, and returns a prioritized offer architecture — plus what 3 real competitors are doing differently.')
+  ]);
+}
+
+function inputField(id, labelText, placeholder, required){
+  const lbl = h('label',{for:id},[labelText, required?h('span',{class:'req'},' *'):null]);
+  const inp = h('input',{type:'text', id:id, placeholder:placeholder});
+  inp.value = APP_STATE.inputs[id] || '';
+  inp.addEventListener('input', e=>{ APP_STATE.inputs[id] = e.target.value; });
+  return h('div',{},[lbl,inp]);
+}
+
+function backendConfigCard(){
+  const card = h('div',{class:'card'});
+  const row = h('div',{class:'configRow'},[
+    h('label',{style:'margin:0;'},'Backend function URL'),
+  ]);
+  card.appendChild(row);
+  const inp = h('input',{type:'text', id:'backendUrl', placeholder:'https://YOUR-PROJECT.functions.supabase.co/analyze-aov'});
+  inp.value = APP_STATE.backendUrl;
+  inp.addEventListener('input', e=>{
+    APP_STATE.backendUrl = e.target.value.trim();
+    localStorage.setItem('troo_aov_backend_url', APP_STATE.backendUrl);
+  });
+  card.appendChild(inp);
+  card.appendChild(h('div',{class:'configNote'},'This is your deployed Supabase edge function URL (see README — supabase functions deploy analyze-aov). The frontend never talks to Claude directly; it only calls this endpoint. Saved locally in this browser.'));
+  return card;
+}
+
+function formView(){
+  const wrap = document.createDocumentFragment();
+  wrap.appendChild(backendConfigCard());
+
+  const card = h('div',{class:'card'});
+  card.appendChild(inputField('brand','Brand name','e.g. Happi Planet', true));
+  card.appendChild(inputField('pdp','Product page (PDP) link — required','https://brand.com/products/...', true));
+  card.appendChild(h('div',{class:'grid2'},[
+    inputField('home','Home page link — optional','https://brand.com'),
+    inputField('collection','Collection page link — optional','https://brand.com/collections/...')
+  ]));
+  card.appendChild(h('button',{class:'runbtn', onclick: runAnalysis},'Generate AOV strategy'));
+  if(APP_STATE.error){ card.appendChild(h('div',{class:'errbox'}, APP_STATE.error)); }
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function loadingView(){
+  const card = h('div',{class:'card'});
+  const w = h('div',{class:'loadwrap'});
+  w.appendChild(h('div',{class:'spinner'}));
+  w.appendChild(h('div',{class:'loadmsg'}, APP_STATE.loadMsg || 'Fetching pages...'));
+  card.appendChild(w);
+  return card;
+}
+
+function statusDot(s){ return s==='fetched' ? 'ok' : (s==='partial' ? 'partial' : 'fail'); }
+function statusLabel(s){
+  if(s==='fetched') return 'Fetched';
+  if(s==='partial') return 'Partial read';
+  if(s==='not_provided') return 'Not provided';
+  return 'Could not access';
+}
+
+function reportView(){
+  const r = APP_STATE.report;
+  const access = APP_STATE.reportMeta ? APP_STATE.reportMeta.access_status : null;
+  const frag = document.createDocumentFragment();
+
+  frag.appendChild(h('div',{class:'reportHead noprint'},[
+    h('h2',{},(APP_STATE.inputs.brand ? APP_STATE.inputs.brand + ' — ' : '') + 'AOV Strategy'),
+    h('div',{class:'btnrow'},[
+      h('button',{class:'secbtn', onclick: downloadPdf},'Download PDF'),
+      h('button',{class:'secbtn', onclick:()=>{APP_STATE.view='form'; APP_STATE.report=null; render();}},'← New analysis')
+    ])
+  ]));
+
+  const printArea = h('div',{id:'reportPrintArea'});
+
+  printArea.appendChild(h('div',{class:'title', style:'font-size:24px;margin-bottom:4px;'},(APP_STATE.inputs.brand||'') + ' AOV Strategy'));
+
+  if(access){
+    const statusRow = h('div',{class:'statusrow'});
+    Object.keys(access).forEach(key=>{
+      const pa = access[key];
+      const pill = h('div',{class:'pill'},[
+        h('span',{class:'dot '+statusDot(pa.status)}),
+        key.toUpperCase()+' — '+statusLabel(pa.status)
+      ]);
+      if(pa.reason) pill.appendChild(h('span',{class:'reasonTxt'}, ' · '+pa.reason));
+      statusRow.appendChild(pill);
+    });
+    printArea.appendChild(statusRow);
+  }
+
+  const diagCard = h('div',{class:'card'});
+  diagCard.appendChild(h('div',{class:'sectionTitle'},'CRO diagnosis'));
+  diagCard.appendChild(h('div',{class:'diagBody'}, r.diagnosis || 'Not available.'));
+  printArea.appendChild(diagCard);
+
+  const impCard = h('div',{class:'card'});
+  impCard.appendChild(h('div',{class:'sectionTitle'},'Top AOV improvements'));
+  (r.improvements || []).forEach((imp, idx)=>{
+    const c = h('div',{class:'impCard'});
+    c.appendChild(h('div',{class:'impHead'},[
+      h('div',{class:'impNum'}, String(idx+1).padStart(2,'0')),
+      h('div',{class:'impTitle'}, imp.mechanism || 'Improvement'),
+      h('div',{class:'impTag'}, imp.applies_to || '')
+    ]));
+    c.appendChild(h('div',{class:'impBody'}, imp.detail || ''));
+    impCard.appendChild(c);
+  });
+  printArea.appendChild(impCard);
+
+  if(r.above_fold_structure){
+    const foldCard = h('div',{class:'card'});
+    foldCard.appendChild(h('div',{class:'sectionTitle'},'Recommended above-the-fold structure'));
+    foldCard.appendChild(h('div',{class:'textBlock'}, r.above_fold_structure));
+    printArea.appendChild(foldCard);
+  }
+
+  if(r.top_tests && r.top_tests.length){
+    const testCard = h('div',{class:'card'});
+    testCard.appendChild(h('div',{class:'sectionTitle'},'Top tests to run first'));
+    const table = h('table',{class:'testtable'});
+    table.appendChild(h('tr',{},[h('th',{},'Priority'),h('th',{},'Test'),h('th',{},'Why')]));
+    r.top_tests.forEach(t=>{
+      table.appendChild(h('tr',{},[
+        h('td',{class:'prio'}, String(t.priority)),
+        h('td',{}, t.test),
+        h('td',{}, t.why)
+      ]));
+    });
+    testCard.appendChild(table);
+    printArea.appendChild(testCard);
+  }
+
+  if(r.offer_architecture){
+    const offerCard = h('div',{class:'card'});
+    offerCard.appendChild(h('div',{class:'sectionTitle'},'Ideal offer architecture'));
+    offerCard.appendChild(h('div',{class:'textBlock'}, r.offer_architecture));
+    printArea.appendChild(offerCard);
+  }
+
+  if(r.competitors && r.competitors.length){
+    const compCard = h('div',{class:'card'});
+    compCard.appendChild(h('div',{class:'sectionTitle'},'Competitor AOV playbook'));
+    const grid = h('div',{class:'compGrid'});
+    r.competitors.forEach(c=>{
+      const card = h('div',{class:'compCard'});
+      const confClass = (c.confidence||'').includes('direct') ? 'direct' : 'search';
+      card.appendChild(h('div',{class:'compName'},[
+        c.name,
+        h('span',{class:'confTag '+confClass}, confClass==='direct' ? 'direct read' : 'search-based')
+      ]));
+      card.appendChild(h('div',{class:'compBody'}, c.tactics || ''));
+      grid.appendChild(card);
+    });
+    compCard.appendChild(grid);
+    printArea.appendChild(compCard);
+  }
+
+  printArea.appendChild(h('div',{class:'footNote'}, 'Generated by TROO AOV INCREASE. Findings reflect only what was retrievable from the live pages and web search — sections noting "could not access" or "unverified" reflect real gaps, not assumptions.'));
+
+  frag.appendChild(printArea);
+  return frag;
+}
+
+function downloadPdf(){
+  const el = document.getElementById('reportPrintArea');
+  if(!el || !window.html2pdf){
+    alert('PDF export library did not load (offline?). Use your browser\\'s Print > Save as PDF instead.');
+    window.print();
+    return;
+  }
+  const brand = (APP_STATE.inputs.brand || 'brand').toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  const opt = {
+    margin: 10,
+    filename: 'troo-aov-strategy-' + brand + '.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, backgroundColor: '#0a0a0d' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all','css','legacy'] }
+  };
+  window.html2pdf().set(opt).from(el).save();
+}
+
+// ---------- JSON repair (defends against malformed/truncated model output reaching the frontend) ----------
+function computeCloser(s){
+  let stack = [], inStr = false, esc = false;
+  for(let i=0;i<s.length;i++){
+    const c = s[i];
+    if(inStr){
+      if(esc){ esc=false; }
+      else if(c === '\\\\'){ esc=true; }
+      else if(c === '"'){ inStr=false; }
+      continue;
+    } else {
+      if(c === '"'){ inStr=true; continue; }
+      if(c === '{' || c === '['){ stack.push(c); }
+      else if(c === '}'){ if(stack[stack.length-1]==='{') stack.pop(); }
+      else if(c === ']'){ if(stack[stack.length-1]==='[') stack.pop(); }
+    }
+  }
+  return { stack, inStr };
+}
+
+function repairAndParseJSON(raw){
+  let s = (raw||'').trim();
+  const firstBrace = s.indexOf('{');
+  if(firstBrace > 0) s = s.slice(firstBrace);
+  try{ return JSON.parse(s); }catch(e){}
+  const s2 = s.replace(/,\s*([}\]])/g, '$1');
+  try{ return JSON.parse(s2); }catch(e){}
+  const minLen = Math.min(50, s.length);
+  for(let cut = s.length; cut > minLen; cut -= 1){
+    let sub = s.slice(0, cut).replace(/,\s*$/, '');
+    const { stack, inStr } = computeCloser(sub);
+    let candidate = sub;
+    if(inStr) candidate += '"';
+    for(let i = stack.length - 1; i >= 0; i--) candidate += (stack[i] === '{' ? '}' : ']');
+    try{ return JSON.parse(candidate); }catch(e){ /* keep trying */ }
+  }
+  throw new Error('Could not parse report JSON.');
+}
+
+async function callBackend(payload){
+  const res = await fetch(APP_STATE.backendUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  let data;
+  try{ data = await res.json(); }
+  catch(e){ throw new Error('Backend returned a non-JSON response (HTTP '+res.status+').'); }
+
+  if(res.status === 422){
+    throw new Error('PDP could not be read: ' + (data.reason || 'unknown reason') + '. PDP is required as the anchor page, so the report was not generated.');
+  }
+  if(res.status === 429){
+    throw new Error('Another report is generating right now. Try again in a moment.');
+  }
+  if(res.status === 400){
+    throw new Error('Bad input: ' + (data.error || 'check the links entered.'));
+  }
+  if(!res.ok){
+    throw new Error(data.error || ('Backend error (HTTP '+res.status+')'));
+  }
+  // backend already returns parsed JSON in data.report, but guard against
+  // any edge case where report arrives as a raw string
+  const reportRaw = typeof data.report === 'string' ? repairAndParseJSON(data.report) : data.report;
+  return { report: reportRaw, access_status: data.access_status, report_id: data.report_id };
+}
+
+async function runAnalysis(){
+  const inputs = APP_STATE.inputs;
+  if(!APP_STATE.backendUrl){
+    APP_STATE.error = 'Set the backend function URL above first (deploy the Supabase function, then paste its URL here).';
+    render();
+    return;
+  }
+  if(!inputs.pdp || !inputs.pdp.trim() || !inputs.brand || !inputs.brand.trim()){
+    APP_STATE.error = 'Brand name and PDP link are both required.';
+    render();
+    return;
+  }
+  APP_STATE.error = null;
+  APP_STATE.view = 'loading';
+  const msgs = ['Fetching the PDP...','Fetching home / collection...','Reading page content...','Researching competitors...','Building the report...'];
+  let mi = 0;
+  APP_STATE.loadMsg = msgs[0];
+  render();
+  const interval = setInterval(()=>{ mi=(mi+1)%msgs.length; APP_STATE.loadMsg = msgs[mi]; if(APP_STATE.view==='loading') render(); }, 4000);
+
+  const payload = {
+    brand_name: inputs.brand,
+    pdp_url: inputs.pdp,
+    home_url: inputs.home || undefined,
+    collection_url: inputs.collection || undefined
+  };
+
+  try{
+    const result = await callBackend(payload);
+    clearInterval(interval);
+    APP_STATE.report = result.report;
+    APP_STATE.reportMeta = { access_status: result.access_status, report_id: result.report_id };
+    APP_STATE.view = 'report';
+    render();
+  }catch(err){
+    clearInterval(interval);
+    console.error(err);
+    APP_STATE.view = 'form';
+    APP_STATE.error = err.message || 'Something went wrong generating the report. Try again.';
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
