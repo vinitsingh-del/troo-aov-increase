@@ -293,7 +293,7 @@ function reportView(){
 function downloadPdf(){
   const el = document.getElementById('reportPrintArea');
   if(!el || !window.html2pdf){
-    alert('PDF export library did not load (offline?). Use your browser\\'s Print > Save as PDF instead.');
+    alert('PDF export library did not load (offline). Use your browser Print, Save as PDF instead.');
     window.print();
     return;
   }
@@ -316,7 +316,7 @@ function computeCloser(s){
     const c = s[i];
     if(inStr){
       if(esc){ esc=false; }
-      else if(c === '\\\\'){ esc=true; }
+      else if(c === '\\'){ esc=true; }
       else if(c === '"'){ inStr=false; }
       continue;
     } else {
