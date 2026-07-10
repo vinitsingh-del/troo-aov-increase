@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <title>TROO AOV INCREASE — Report Clone</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="troo-aov-clone-build" content="2026-07-10T18:31:00Z" />
+<meta name="troo-aov-clone-build" content="2026-07-11T00:18:00Z" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -82,16 +82,14 @@
   @media(max-width:760px){.suggestionFields{grid-template-columns:1fr}}
   .fieldBox{border-top:1px solid var(--line);padding-top:10px;color:#d7d4de;font-size:13.5px;line-height:1.55}
   .fieldBox b{display:block;font:10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
-  .miniWire{margin-top:14px;border:1px solid var(--line);border-radius:8px;background:#0b0a0f;padding:12px;display:grid;grid-template-columns:120px 1fr;gap:12px}
-  .miniMedia{border-radius:6px;background:linear-gradient(135deg,#24232d,#111016);min-height:132px;display:flex;align-items:center;justify-content:center;color:#696372;font:10px "JetBrains Mono",monospace;text-align:center;padding:8px}
-  .miniStack{display:flex;flex-direction:column;gap:7px}
-  .miniLine{height:10px;border-radius:999px;background:rgba(255,255,255,.14)}
-  .miniLine.short{width:48%}.miniLine.mid{width:70%}
-  .miniDeals{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
-  .miniDeal{border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:7px;color:var(--muted);font:10px "JetBrains Mono",monospace}
-  .miniDeal.best{border-color:var(--purple);color:var(--white);box-shadow:0 0 0 1px rgba(138,108,245,.45)}
-  .miniCta{height:28px;border-radius:6px;background:linear-gradient(90deg,var(--purple),#b27aff);margin-top:2px}
-  @media(max-width:760px){.miniWire{grid-template-columns:1fr}.miniMedia{min-height:90px}}
+  .evidenceCard{margin-top:14px;border:1px solid var(--line);border-radius:8px;background:#0b0a0f;padding:14px;display:grid;grid-template-columns:180px 1fr;gap:14px}
+  .evidenceShot{border-radius:6px;border:1px solid var(--line);min-height:150px;background:linear-gradient(180deg,#17151d,#0c0b10);position:relative;overflow:hidden}
+  .evidenceShot::before{content:"";position:absolute;left:18px;right:18px;top:22px;height:16px;border-radius:999px;background:rgba(255,255,255,.12);box-shadow:0 34px 0 rgba(255,255,255,.08),0 68px 0 rgba(255,255,255,.06)}
+  .evidenceHighlight{position:absolute;left:26px;right:26px;bottom:24px;height:44px;border:2px solid var(--crimson);border-radius:8px;background:rgba(209,74,97,.12)}
+  .evidenceText{color:#d7d4de;font-size:13.5px;line-height:1.55}
+  .evidenceText b{display:block;font:10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .scoreLine{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  @media(max-width:760px){.evidenceCard{grid-template-columns:1fr}.evidenceShot{min-height:120px}}
   .suggestionActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
   .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
   .modal{width:min(1120px,100%);max-height:92vh;overflow:auto;background:#111015;border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 70px rgba(0,0,0,.5)}
@@ -102,6 +100,7 @@
   .previewFrameWrap{margin:0 auto;border:1px solid var(--line);border-radius:8px;background:white;overflow:hidden;transition:width .2s ease;max-width:100%}
   .previewFrameWrap.desktop{width:980px}
   .previewFrameWrap.mobile{width:390px}
+  .previewFrameWrap.compare{width:1080px}
   .previewFrame{display:block;width:100%;height:620px;border:0;background:white}
   .closeBtn{background:transparent;border:0;color:var(--muted);font-size:24px;cursor:pointer;line-height:1}
   .footNote{margin-top:32px;padding-top:18px;border-top:1px solid var(--line);color:#5a5763;font:11.5px "JetBrains Mono",monospace;line-height:1.7}
@@ -480,14 +479,16 @@ function suggestionCards(report){
       el('div',{class:'suggestionFields'},[
         fieldBox('Page Type', sug.pageType),
         fieldBox('Affected Section', sug.sectionName),
+        fieldBox('Opportunity Score', `${sug.opportunityScore}/100`),
         fieldBox('Current Problem', sug.problem),
         fieldBox('Why It Matters', sug.reason),
         fieldBox('Recommended Change', sug.recommendation),
         fieldBox('Expected Impact', `${sug.expectedImpact.primaryMetric}; ${sug.expectedImpact.secondaryMetric}; confidence ${sug.expectedImpact.confidence}`),
+        fieldBox('Dependencies', sug.dependencies.join('; ') || 'None identified'),
       ]),
-      miniWireframePreview(sug),
+      evidencePreview(sug),
       el('div',{class:'suggestionActions'},[
-        el('button',{class:'secbtn', onclick:()=>openWireframe(sug)},'Generate Wireframe'),
+        el('button',{class:'secbtn', onclick:()=>openWireframe(sug)},'Generate Section'),
         el('button',{class:'secbtn', onclick:()=>copyDeveloperPrompt(sug)},'Copy Developer Prompt')
       ])
     ]));
@@ -499,61 +500,26 @@ function fieldBox(label, value){
   return el('div',{class:'fieldBox'},[el('b',{},label), value || 'Not specified']);
 }
 
-function miniWireframePreview(sug){
-  return el('div',{class:'miniWire'},[
-    el('div',{class:'miniMedia'},'section context'),
-    el('div',{class:'miniStack'},[
-      el('div',{class:'miniLine mid'}),
-      el('div',{class:'miniLine short'}),
-      el('div',{class:'miniDeals'},[
-        el('div',{class:'miniDeal'},'Buy 1'),
-        el('div',{class:'miniDeal best'},'Buy 2'),
-        el('div',{class:'miniDeal'},'Buy 3'),
-        el('div',{class:'miniDeal'},'Buy 5')
-      ]),
-      el('div',{class:'miniCta', title:`Wireframe preview for ${sug.title}`})
+function evidencePreview(sug){
+  return el('div',{class:'evidenceCard'},[
+    el('div',{class:'evidenceShot'},[el('div',{class:'evidenceHighlight'})]),
+    el('div',{class:'evidenceText'},[
+      el('b',{}, sug.evidence.status === 'observed' ? 'Evidence summary' : 'Hypothesis - requires validation'),
+      sug.evidence.observation,
+      el('div',{class:'scoreLine'},[
+        el('span',{class:'metaPill'},`Evidence: ${sug.evidence.confidence}`),
+        el('span',{class:'metaPill'},`Section: ${sug.sectionType}`),
+        el('span',{class:'metaPill'}, sug.wireframeEligible ? 'Generate section ready' : 'Manual validation needed')
+      ])
     ])
   ]);
 }
 
 function buildSuggestions(report){
-  const defaults = [
-    {
-      title:'Move Quantity Deals Below the Price',
-      sectionType:'pdp_purchase_box',
-      sectionName:'PDP Purchase Box',
-      problem:'Bundle offers appear too far below the main Add to Cart section.',
-      recommendation:'Display 1, 2, 3 and 5-product purchase options immediately below the product price.',
-      reason:'Users should see higher-value purchase options before selecting Add to Cart.',
-      affectedSection:'PDP Purchase Box',
-      priority:'High',
-      effort:'Medium'
-    },
-    {
-      title:'Add a Free Shipping Progress Bar',
-      sectionType:'cart_drawer',
-      sectionName:'Cart Drawer',
-      problem:'The shopper does not see a clear reward for adding one more item.',
-      recommendation:'Show an amount-left progress bar with a relevant add-on beneath it.',
-      reason:'A visible threshold creates a concrete reason to increase cart size.',
-      affectedSection:'Cart Drawer Reward Area',
-      priority:'High',
-      effort:'Medium'
-    },
-    {
-      title:'Create a Starter Bundle as the Default Choice',
-      sectionType:'pdp_purchase_box',
-      sectionName:'PDP Purchase Box',
-      problem:'The page frames the purchase as a single SKU instead of a complete solution.',
-      recommendation:'Make the 2 or 3-item starter bundle the most prominent card near the CTA.',
-      reason:'A bundle reframes the higher-value cart as the recommended way to buy.',
-      affectedSection:'Bundle Selector',
-      priority:'High',
-      effort:'Medium'
-    }
-  ];
   return (report.improvements || []).slice(0, 8).map((item, idx)=>{
-    const base = defaults[idx] || suggestionFromImprovement(item, idx);
+    const base = suggestionFromImprovement(item, idx);
+    const evidence = evidenceFor(item, idx, report);
+    const score = opportunityScore(evidence, item, idx);
     return {
       id:`sug_${String(idx+1).padStart(3,'0')}`,
       title: base.title,
@@ -564,32 +530,128 @@ function buildSuggestions(report){
       problem: base.problem,
       recommendation: base.recommendation || item.detail,
       reason: base.reason || 'The change makes the next higher-value purchase path more visible before checkout intent drops.',
-      priority: base.priority || (idx < 3 ? 'High' : 'Medium'),
+      evidence,
+      priority: score >= 80 ? 'High' : score >= 65 ? 'Medium' : 'Validation',
       effort: base.effort || (idx < 5 ? 'Medium' : 'Low'),
+      opportunityScore: score,
       expectedImpact: {
-        primaryMetric:'average_order_value',
+        primaryMetric: item.applies_to === 'pdp' ? 'revenue_per_pdp_session' : 'average_order_value',
         secondaryMetric: item.applies_to === 'collection' ? 'revenue_per_collection_session' : 'revenue_per_pdp_session',
-        confidence: idx < 4 ? 'high' : 'medium'
+        confidence: evidence.status === 'observed' ? 'medium' : 'requires validation'
       },
+      dependencies: dependenciesFor(item, evidence),
+      doNotInvent:['discount','shipping threshold','review count','rating','stock status','price'],
+      wireframeEligible: true,
       wireframeInstruction: {
-        generateOnly:['product title','rating summary','price','quantity deal cards','add to cart','order bump','trust messages'],
-        exclude:['header','navigation','footer','full product gallery','reviews section','recommendation carousel']
+        generateOnly: componentsFor(item.applies_to, base.sectionType),
+        exclude:['header','navigation','footer','full product gallery','reviews section','recommendation carousel','fake urgency','fake rating','invented shipping promise']
       }
     };
   });
 }
 
 function suggestionFromImprovement(item, idx){
+  const sectionType = specificSectionType(item);
   return {
     title:item.mechanism,
-    sectionType:sectionTypeFor(item.applies_to),
-    sectionName:item.applies_to === 'collection' ? 'Collection Product Grid' : item.applies_to === 'home' ? 'Homepage Offer Module' : 'PDP Purchase Box',
-    problem:'The current page does not make this AOV lever visible early enough in the shopping flow.',
+    sectionType,
+    sectionName:sectionNameFor(sectionType),
+    problem:problemFor(item),
     recommendation:item.detail,
-    reason:'Mapping the suggestion to a specific section makes it easier for design and development to implement without changing unrelated page areas.',
+    reason:reasonFor(item),
     priority:idx < 5 ? 'High' : 'Medium',
-    effort:idx < 5 ? 'Medium' : 'Low'
+    effort:effortFor(item)
   };
+}
+
+function specificSectionType(item){
+  const text = `${item.mechanism || ''} ${item.detail || ''}`.toLowerCase();
+  if(text.includes('cart drawer') || text.includes('threshold')) return 'cart_threshold_area';
+  if(text.includes('collection') || item.applies_to === 'collection') return 'collection_product_card';
+  if(text.includes('home') || item.applies_to === 'home') return 'homepage_merchandising_section';
+  if(text.includes('review')) return 'pdp_reviews_summary';
+  if(text.includes('comparison')) return 'pdp_comparison_table';
+  if(text.includes('sticky')) return 'pdp_sticky_add_to_cart';
+  if(text.includes('delivery')) return 'pdp_delivery_checker';
+  if(text.includes('bundle') || text.includes('quantity') || text.includes('subscription') || text.includes('order bump') || text.includes('refill')) return 'pdp_purchase_box';
+  return sectionTypeFor(item.applies_to);
+}
+
+function sectionNameFor(type){
+  return ({
+    pdp_purchase_box:'PDP Purchase Box',
+    cart_threshold_area:'Cart Threshold Area',
+    collection_product_card:'Collection Product Card',
+    homepage_merchandising_section:'Homepage Merchandising Section',
+    pdp_reviews_summary:'Reviews Summary',
+    pdp_comparison_table:'Comparison Table',
+    pdp_sticky_add_to_cart:'Sticky Add To Cart',
+    pdp_delivery_checker:'Delivery Checker'
+  })[type] || 'Affected Section';
+}
+
+function problemFor(item){
+  const detail = item.detail || 'The opportunity is visible in the supplied page read.';
+  return `Current friction identified from the report: ${detail}`;
+}
+
+function reasonFor(item){
+  if(item.applies_to === 'collection') return 'Collection improvements affect product discovery before the shopper reaches a PDP.';
+  if(item.applies_to === 'home') return 'Homepage merchandising can route shoppers into higher-value product paths earlier.';
+  return 'The PDP purchase area is where AOV mechanics must be visible before checkout intent drops.';
+}
+
+function effortFor(item){
+  const text = `${item.mechanism || ''} ${item.detail || ''}`.toLowerCase();
+  if(text.includes('backend') || text.includes('subscription') || text.includes('cart drawer')) return 'High';
+  if(text.includes('module') || text.includes('table') || text.includes('bundle')) return 'Medium';
+  return 'Low';
+}
+
+function evidenceFor(item, idx, report){
+  const hasAccess = Object.values(state.result?.access_status || {}).some(v => v.status === 'fetched' || v.status === 'partial');
+  const status = hasAccess ? 'hypothesis' : 'hypothesis';
+  const confidence = hasAccess ? (idx < 4 ? 0.72 : 0.66) : 0.5;
+  return {
+    evidenceId:`ev_${String(idx+1).padStart(3,'0')}`,
+    status,
+    requiresValidation:true,
+    observation:`The supplied page read supports an AOV/CRO review, but exact DOM position, screenshots, and commercial values require rendered-page validation before implementation.`,
+    source:{
+      pageUrl: pageUrlFor(item.applies_to),
+      text: report.diagnosis || item.detail || '',
+      domSelector:null,
+      screenshot:null
+    },
+    confidence
+  };
+}
+
+function opportunityScore(evidence, item, idx){
+  const evidenceConfidence = Math.round(evidence.confidence * 20);
+  const relevance = 18;
+  const impact = idx < 4 ? 17 : 14;
+  const fit = 12;
+  const feasibility = effortFor(item) === 'High' ? 9 : effortFor(item) === 'Medium' ? 12 : 14;
+  const completeness = evidence.status === 'observed' ? 9 : 6;
+  return Math.max(65, Math.min(92, evidenceConfidence + relevance + impact + fit + feasibility + completeness));
+}
+
+function dependenciesFor(item, evidence){
+  const deps = [];
+  const text = `${item.mechanism || ''} ${item.detail || ''}`.toLowerCase();
+  if(text.includes('bundle') || text.includes('quantity')) deps.push('Confirm product combinations, inventory and pricing before launch');
+  if(text.includes('threshold') || text.includes('free shipping')) deps.push('Confirm actual free-shipping or reward threshold');
+  if(text.includes('subscription')) deps.push('Confirm subscription app or replenishment infrastructure');
+  if(evidence.requiresValidation) deps.push('Validate with rendered screenshot and current section DOM');
+  return deps;
+}
+
+function componentsFor(pageType, sectionType){
+  if(sectionType === 'cart_threshold_area') return ['confirmed threshold when available','cart progress state','one verified add-on when available','checkout CTA context'];
+  if(sectionType === 'collection_product_card') return ['actual product card content','product name','price when available','badge when observed','quick add when present'];
+  if(sectionType === 'homepage_merchandising_section') return ['section heading','problem or product cards','short supporting copy','CTA'];
+  return ['product title when available','price when available','verified offer or validation note','primary CTA','implementation note'];
 }
 
 function pageTypeLabel(value){
@@ -622,11 +684,11 @@ async function copyShareLink(){
 }
 
 function openWireframe(suggestion){
+  state.viewport = 'desktop';
   state.modal = {
     suggestion,
     html: generateWireframeHtml(suggestion)
   };
-  state.viewport = 'desktop';
   render();
 }
 
@@ -641,20 +703,30 @@ function wireframeModal(){
     el('div',{class:'modal'},[
       el('div',{class:'modalHead'},[
         el('div',{},[
-          el('div',{class:'suggestionNo'},`Wireframe - ${sug.id}`),
-          el('div',{class:'modalTitle'},sug.title)
+          el('div',{class:'suggestionNo'},`Generated Section - ${sug.id}`),
+          el('div',{class:'modalTitle'},`${sug.sectionName}: ${sug.title}`),
+          el('div',{class:'scoreLine'},[
+            el('span',{class:'metaPill'},`Evidence fidelity: ${fidelityScore(sug)}/100`),
+            el('span',{class:'metaPill'},`Evidence used: ${sug.evidence.evidenceId}`),
+            el('span',{class:'metaPill'}, sug.evidence.requiresValidation ? 'Needs rendered validation' : 'Observed')
+          ])
         ]),
-        el('button',{class:'closeBtn', onclick:closeWireframe},'×')
+        el('button',{class:'closeBtn', onclick:closeWireframe, 'aria-label':'Close'},'×')
       ]),
       el('div',{class:'modalBody'},[
         el('div',{class:'previewTools'},[
           el('button',{class:'secbtn', onclick:()=>setViewport('desktop')},'View Desktop'),
           el('button',{class:'secbtn', onclick:()=>setViewport('mobile')},'View Mobile'),
+          el('button',{class:'secbtn', onclick:()=>setViewport('compare')},'Compare With Current'),
           el('button',{class:'secbtn', onclick:()=>downloadWireframeHtml(sug)},'Download HTML'),
           el('button',{class:'secbtn', onclick:()=>copyDeveloperPrompt(sug)},'Copy Developer Prompt')
         ]),
         el('div',{class:`previewFrameWrap ${state.viewport}`},[
           el('iframe',{class:'previewFrame', srcdoc:state.modal.html, title:`${sug.title} preview`})
+        ]),
+        el('div',{class:'fieldBox'},[
+          el('b',{},'Why this design belongs to this brand'),
+          designRationale(sug)
         ])
       ])
     ])
@@ -663,34 +735,61 @@ function wireframeModal(){
 
 function setViewport(viewport){
   state.viewport = viewport;
+  if(state.modal) state.modal.html = generateWireframeHtml(state.modal.suggestion);
   render();
 }
 
 function brandTokens(){
+  const domain = domainName(state.inputs.pdp || state.inputs.home || '');
+  const natural = /happi|planet|eco|clean|better|beco|born/i.test(`${state.inputs.brand} ${domain}`);
+  const beauty = /minimal|beauty|skin|plum|mcaffeine/i.test(`${state.inputs.brand} ${domain}`);
+  const palette = natural
+    ? { primary:'#244b3b', secondary:'#f7f3ea', accent:'#d49a3a', background:'#fffaf2', text:'#17211d' }
+    : beauty
+      ? { primary:'#111111', secondary:'#fafafa', accent:'#7c5cff', background:'#ffffff', text:'#161616' }
+      : { primary:'#1f2933', secondary:'#f7f7f4', accent:'#8a6cf5', background:'#ffffff', text:'#161616' };
   return {
-    primary_color:'#8a6cf5',
-    secondary_color:'#131217',
-    accent_color:'#d14a61',
-    background_color:'#0a0a0d',
-    text_color:'#f4f2f6',
-    heading_font:'Space Grotesk',
-    body_font:'Inter',
+    primary_color:{value:palette.primary,source:'domain_and_page_text_estimate',confidence:.62},
+    secondary_color:{value:palette.secondary,source:'domain_and_page_text_estimate',confidence:.58},
+    accent_color:{value:palette.accent,source:'domain_and_page_text_estimate',confidence:.58},
+    background_color:{value:palette.background,source:'domain_and_page_text_estimate',confidence:.6},
+    text_color:{value:palette.text,source:'domain_and_page_text_estimate',confidence:.62},
+    heading_font:{value:'system sans-serif',source:'fallback_until_rendered_styles_available',confidence:.45},
+    body_font:{value:'system sans-serif',source:'fallback_until_rendered_styles_available',confidence:.45},
     border_radius:'8px',
     button_radius:'8px',
-    button_style:'solid high-contrast',
-    shadow_style:'soft crimson/purple glow',
+    button_style:'solid brand-colour CTA',
+    shadow_style:'none unless observed',
     container_width:'1120px',
     logo_url:'',
     icon_style:'minimal line icons',
-    product_image_style:'clean ecommerce product card',
-    raw_tokens_json:{ source:'TROO AOV clone visual system' }
+    product_image_style:'use actual product imagery only when extracted',
+    raw_tokens_json:{ source:'estimated from supplied URL/domain; needs rendered style extraction for production' }
   };
 }
 
 function generateWireframeHtml(sug){
   const tokens = brandTokens();
+  const verified = verifiedData();
   const brand = state.inputs.brand || 'Brand';
   const safeTitle = escapeHtml(sug.title);
+  const cssTokens = {
+    bg: tokens.background_color.value,
+    panel: tokens.secondary_color.value,
+    text: tokens.text_color.value,
+    primary: tokens.primary_color.value,
+    accent: tokens.accent_color.value,
+    muted: '#66716c'
+  };
+  const priceBlock = verified.prices.length
+    ? `<div class="price">${escapeHtml(verified.prices[0])}</div><div class="source">Price signal verified from public read. Confirm exact SKU mapping before launch.</div>`
+    : `<div class="note">Price unavailable in public read; omit price until verified.</div>`;
+  const offerCards = verified.offers.length
+    ? verified.offers.map((offer, idx)=>`<button class="offer${idx===0?' selected':''}" type="button"><b>${escapeHtml(offer.label)}</b>${offer.price ? `<span>${escapeHtml(offer.price)}</span>` : ''}</button>`).join('')
+    : `<div class="validation">Commercial validation required before adding pack cards, discounts or threshold rewards.</div>`;
+  const comparePanel = state.viewport === 'compare'
+    ? `<aside class="current"><strong>Current section evidence</strong><p>${escapeHtml(sug.evidence.observation)}</p><p>No screenshot was captured in this lightweight run. Use rendered capture before production handoff.</p></aside>`
+    : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -698,41 +797,94 @@ function generateWireframeHtml(sug){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${safeTitle} - Wireframe</title>
 <style>
-  :root{--bg:${tokens.background_color};--panel:${tokens.secondary_color};--text:${tokens.text_color};--muted:#9b96a6;--primary:${tokens.primary_color};--accent:${tokens.accent_color};--line:rgba(255,255,255,.12)}
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;padding:24px}
-  .section{max-width:${tokens.container_width};margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:${tokens.border_radius};padding:24px;display:grid;grid-template-columns:1fr 1.05fr;gap:24px}
-  .media{min-height:360px;border-radius:8px;background:linear-gradient(135deg,#20202a,#111);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
-  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
-  h1{font-family:"Space Grotesk",Inter,sans-serif;font-size:34px;line-height:1.08;margin:8px 0 8px}
-  .rating{color:#f5c85b;font-size:13px;margin-bottom:14px}.price{font-size:24px;font-weight:800;margin:8px 0 14px}
-  .deals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.deal{border:1px solid var(--line);border-radius:8px;padding:12px;background:#0c0b10}.deal.best{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
-  .deal b{display:block;font-size:15px}.deal span{color:var(--muted);font-size:12px}.bump{border:1px dashed var(--accent);border-radius:8px;padding:12px;margin:12px 0;color:#f3ccd3;background:rgba(209,74,97,.08)}
-  button{width:100%;border:0;border-radius:${tokens.button_radius};padding:15px;background:linear-gradient(90deg,var(--primary),#b27aff);font-weight:800;font-size:15px;color:#09090c}
-  .trust{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.trust div{border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--muted);font-size:12px;text-align:center}
-  @media(max-width:700px){body{padding:14px}.section{grid-template-columns:1fr;padding:16px}.media{min-height:220px}h1{font-size:26px}.deals,.trust{grid-template-columns:1fr}}
+  #troo-section-${sug.id}{--bg:${cssTokens.bg};--panel:${cssTokens.panel};--text:${cssTokens.text};--muted:${cssTokens.muted};--primary:${cssTokens.primary};--accent:${cssTokens.accent};--line:rgba(0,0,0,.12);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
+  *{box-sizing:border-box} body{margin:0;background:#fff;padding:24px}
+  #troo-section-${sug.id} .comparison{display:grid;grid-template-columns:${state.viewport === 'compare' ? '1fr 1fr' : '1fr'};gap:18px;max-width:${tokens.container_width};margin:0 auto}
+  #troo-section-${sug.id} section{background:var(--bg);border:1px solid var(--line);border-radius:${tokens.border_radius};padding:22px}
+  #troo-section-${sug.id} .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+  #troo-section-${sug.id} h1{font-size:28px;line-height:1.1;margin:8px 0 10px;color:var(--text)}
+  #troo-section-${sug.id} .summary{color:var(--muted);line-height:1.55;margin:0 0 16px}
+  #troo-section-${sug.id} .price{font-size:24px;font-weight:800;margin:8px 0 14px}
+  #troo-section-${sug.id} .source{font-size:12px;color:var(--muted);margin:-8px 0 14px}
+  #troo-section-${sug.id} .note,#troo-section-${sug.id} .validation{border:1px dashed var(--accent);border-radius:8px;padding:12px;margin:10px 0;color:var(--muted);background:rgba(0,0,0,.03)}
+  #troo-section-${sug.id} .offers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+  #troo-section-${sug.id} .offer{border:1px solid var(--line);background:var(--panel);border-radius:${tokens.border_radius};padding:12px;text-align:left;color:var(--text)}
+  #troo-section-${sug.id} .offer.selected{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+  #troo-section-${sug.id} .offer b{display:block} #troo-section-${sug.id} .offer span{display:block;color:var(--muted);margin-top:3px}
+  #troo-section-${sug.id} .cta{width:100%;border:0;border-radius:${tokens.button_radius};padding:14px;background:var(--primary);color:white;font-weight:800;margin-top:12px}
+  #troo-section-${sug.id} .current{background:#f6f6f4;border:1px solid var(--line);border-radius:${tokens.border_radius};padding:18px;color:#333;line-height:1.5}
+  @media(max-width:720px){body{padding:12px}#troo-section-${sug.id} .comparison{grid-template-columns:1fr}#troo-section-${sug.id} .offers{grid-template-columns:1fr}#troo-section-${sug.id} h1{font-size:23px}}
 </style>
 </head>
 <body>
-  <section class="section" data-section-type="${escapeHtml(sug.sectionType)}">
-    <div class="media">Product visual / gallery context</div>
-    <div>
-      <div class="eyebrow">${escapeHtml(brand)} - improved section</div>
-      <h1>${safeTitle}</h1>
-      <div class="rating">★★★★★ 4.8 rating summary</div>
-      <div class="price">Price shown here</div>
-      <div class="deals">
-        <div class="deal"><b>Buy 1</b><span>Single product</span></div>
-        <div class="deal best"><b>Buy 2</b><span>Best starter value</span></div>
-        <div class="deal"><b>Buy 3</b><span>Family pack</span></div>
-        <div class="deal"><b>Buy 5</b><span>Stock-up deal</span></div>
-      </div>
-      <div class="bump">Add a complementary product and unlock the next reward tier.</div>
-      <button>Add selected bundle to cart</button>
-      <div class="trust"><div>Free shipping threshold</div><div>Easy returns</div><div>Secure checkout</div></div>
+  <main id="troo-section-${sug.id}">
+    <div class="comparison">
+      ${comparePanel}
+      <section data-section-type="${escapeHtml(sug.sectionType)}" aria-label="${escapeHtml(sug.sectionName)}">
+        <div class="eyebrow">${escapeHtml(brand)} · ${escapeHtml(sug.sectionName)}</div>
+        <h1>${safeTitle}</h1>
+        <p class="summary">${escapeHtml(sug.recommendation)}</p>
+        ${priceBlock}
+        <div class="offers">${offerCards}</div>
+        <button class="cta" type="button">${ctaFor(sug)}</button>
+        <p class="note">Implementation note: ${escapeHtml((sug.dependencies || [])[0] || 'Validate current section DOM before launch.')}</p>
+      </section>
     </div>
-  </section>
+  </main>
 </body>
 </html>`;
+}
+
+function verifiedData(){
+  const report = state.result?.report || {};
+  const access = state.result?.access_status || {};
+  const diagnosis = report.diagnosis || '';
+  const prices = Array.from(new Set((diagnosis.match(/(?:₹|rs\.?|inr|\$)\s?[\d,]+(?:\.\d{1,2})?/gi) || [])
+    .map(price => price.replace(/[,\s]+$/g, '').trim())
+    .filter(Boolean)
+    .slice(0, 6)));
+  const rawTitle = access.pdp?.title || '';
+  const pdpTitle = /404|not found|access denied|forbidden/i.test(rawTitle) ? (state.inputs.brand || '') : rawTitle;
+  const offers = prices.slice(0, 4).map((price, idx)=>({
+    label: idx === 0 ? (pdpTitle || 'Observed public price signal') : `Observed public price signal ${idx + 1}`,
+    price
+  }));
+  return {
+    productName: pdpTitle,
+    prices,
+    offers,
+    rating:null,
+    reviewCount:null,
+    shippingThreshold:null,
+    images:[]
+  };
+}
+
+function ctaFor(sug){
+  if(sug.sectionType === 'collection_product_card') return 'Apply to product card';
+  if(sug.sectionType === 'homepage_merchandising_section') return 'Apply merchandising section';
+  if(sug.sectionType === 'cart_threshold_area') return 'Apply cart section';
+  return 'Apply purchase section';
+}
+
+function fidelityScore(sug){
+  const verified = verifiedData();
+  const realData = verified.prices.length ? 18 : 10;
+  const brand = brandTokens().primary_color.confidence * 15;
+  const scope = 10;
+  const recommendation = 15;
+  const accessibility = 5;
+  const continuity = sug.evidence.requiresValidation ? 9 : 14;
+  return Math.round(Math.min(91, brand + 8 + 8 + continuity + realData + recommendation + scope + accessibility));
+}
+
+function designRationale(sug){
+  const tokens = brandTokens();
+  const verified = verifiedData();
+  const dataNote = verified.prices.length
+    ? `Uses observed price signal ${verified.prices[0]}.`
+    : 'Omits price, rating, review and shipping claims because they were not verified in the public read.';
+  return `${dataNote} Colour and typography are marked as estimated (${Math.round(tokens.primary_color.confidence * 100)}% confidence) until rendered CSS extraction is available. The output is scoped to ${sug.sectionName} and excludes header, footer, reviews list and unrelated product gallery content.`;
 }
 
 function downloadWireframeHtml(sug){
